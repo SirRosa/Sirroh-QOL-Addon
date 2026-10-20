@@ -68,7 +68,7 @@ namespace Sirroh.Qol
                 HarmonyMethod post = postfix == null ? null : new HarmonyMethod(postfix) { priority = priority };
                 HarmonyMethod trans = transpiler == null ? null : new HarmonyMethod(transpiler);
                 HarmonyMethod fin = finalizer == null ? null : new HarmonyMethod(finalizer);
-                _harmony.Patch(original, pre, post, trans, fin);
+                _harmony.Patch(original, pre, post, trans, fin, null);
             }
             catch (Exception e) { Logger.LogWarning(module + ": hook unavailable: " + e); }
         }
