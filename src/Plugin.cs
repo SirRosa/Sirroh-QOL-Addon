@@ -1,0 +1,79 @@
+using System;
+using System.Reflection;
+using BepInEx;
+using BepInEx.Configuration;
+using HarmonyLib;
+
+namespace Sirroh.Qol
+{
+    [BepInPlugin(Guid, "Sirroh QOL Addon", Version)]
+    [BepInDependency("sirro.valheim.pracafizyczna", "0.22.65")]
+    public sealed class Plugin : BaseUnityPlugin
+    {
+        public const string Guid = "sirro.valheim.qoladdon";
+        public const string Version = "0.1.0";
+        internal static Plugin Instance;
+        private Harmony _harmony;
+
+        internal ConfigEntry<bool> AutoRepairEnabled;
+        internal ConfigEntry<bool> SafeStaminaEnabled;
+        internal ConfigEntry<float> SafeRadius;
+        internal ConfigEntry<string> IgnoredCreatures;
+        internal ConfigEntry<bool> FoodFreezeEnabled;
+        internal ConfigEntry<bool> FreezeWhileResting;
+        internal ConfigEntry<bool> FreezeNearFire;
+        internal ConfigEntry<float> FireRadius;
+        internal ConfigEntry<bool> GlowSignsEnabled;
+        internal ConfigEntry<bool> NoSlopeSlideEnabled;
+
+        private void Awake()
+        {
+            Instance = this;
+            AutoRepairEnabled = Config.Bind("01 Auto Repair", "Enabled", true, "Automatically repair items after opening a matching crafting station.");
+            SafeStaminaEnabled = Config.Bind("02 Safe Stamina", "Enabled", true, "Do not spend stamina when no hostile creature is nearby (local player only).");
+            SafeRadius = Config.Bind("02 Safe Stamina", "HostileRadius", 25f,
+                new ConfigDescription("Hostile detection radius in meters.", new AcceptableValueRange<float>(5f, 100f)));
+            IgnoredCreatures = Config.Bind("02 Safe Stamina", "IgnoredCreatures", "",
+                "Comma-separated prefab names to ignore during nearby-hostile checks.");
+            FoodFreezeEnabled = Config.Bind("03 Food Freeze", "Enabled", true, "Preserve food remaining duration while resting or near a lit fire.");
+            FreezeWhileResting = Config.Bind("03 Food Freeze", "WhileResting", true, "Freeze while the Resting status is active (not the long-lasting Rested buff).");
+            FreezeNearFire = Config.Bind("03 Food Freeze", "NearLitFire", true, "Freeze when a lit fireplace is nearby.");
+            FireRadius = Config.Bind("03 Food Freeze", "FireRadius", 12f,
+                new ConfigDescription("Distance to check for burning fireplaces.", new AcceptableValueRange<float>(2f, 35f)));
+            GlowSignsEnabled = Config.Bind("04 Glowing Signs", "Enabled", true, "Use a high-contrast, brighter sign text material without changing shared font assets.");
+            NoSlopeSlideEnabled = Config.Bind("05 Slopes", "Enabled", true, "Prevent idle on-ground player sliding without touching falling or ship physics.");
+
+            _harmony = new Harmony(Guid);
+            AutoRepair.Install(this);
+            SafeStamina.Install(this);
+            FoodFreeze.Install(this);
+            GlowingSigns.Install(this);
+            SlopeSafety.Install(this);
+            Logger.LogInfo("Sirroh QOL Addon " + Version + " initialized (Sirroh Overhaul >=0.22.65 required).");
+        }
+
+        internal void Patch(string module, MethodBase original, MethodInfo prefix = null, MethodInfo postfix = null, int priority = Priority.Normal)
+        {
+            if (original == null)
+            {
+                Logger.LogWarning(module + ": target API not available; module hook disabled.");
+                return;
+            }
+            try
+            {
+                HarmonyMethod pre = prefix == null ? null : new HarmonyMethod(prefix) { priority = priority };
+                HarmonyMethod post = postfix == null ? null : new HarmonyMethod(postfix) { priority = priority };
+                _harmony.Patch(original, pre, post);
+            }
+            catch (Exception e) { Logger.LogWarning(module + ": hook unavailable: " + e); }
+        }
+
+        private void OnDestroy()
+        {
+            StopAllCoroutines();
+            try { _harmony?.UnpatchSelf(); } catch (Exception e) { Logger.LogWarning(e); }
+            try { GlowingSigns.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
+            Instance = null;
+        }
+    }
+}

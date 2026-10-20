@@ -1,0 +1,89 @@
+name: Build Thunderstore
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Static checks
+        run: python3 tools/verify_contracts.py
+      - name: Cache game reference assemblies
+        uses: actions/cache@v4
+        id: valheim
+        with:
+          path: ${{ runner.temp }}/valheim-server/valheim_server_Data/Managed
+          key: valheim-qol-server-managed-1.0.20-v1
+      - name: Install SteamCMD
+        if: steps.valheim.outputs.cache-hit != 'true'
+        uses: CyberAndrii/setup-steamcmd@v1
+      - name: Download public Valheim dedicated-server reference assemblies
+        if: steps.valheim.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/valheim-server"
+          for i in 1 2 3; do
+            if steamcmd +force_install_dir "$RUNNER_TEMP/valheim-server" +login anonymous +app_update 896660 -beta public validate +quit && test -f "$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed/assembly_valheim.dll"; then break; fi
+            sleep $((i * 5))
+          done
+          test -f "$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed/assembly_valheim.dll"
+      - name: Retrieve BepInEx build references
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bepinex" .build-refs/bep
+          curl -fLsS --retry 3 -o "$RUNNER_TEMP/bep.zip" 'https://thunderstore.io/package/download/denikson/BepInExPack_Valheim/5.4.2351/'
+          unzip -q "$RUNNER_TEMP/bep.zip" -d "$RUNNER_TEMP/bepinex"
+          for f in BepInEx.dll 0Harmony.dll; do
+            source=$(find "$RUNNER_TEMP/bepinex" -name "$f" -type f -print -quit)
+            test -n "$source"
+            cp "$source" ".build-refs/bep/$f"
+          done
+      - name: Compile SirrohQolAddon.dll
+        run: |
+          dotnet build SirrohQolAddon.csproj -c Release --nologo -p:ReferenceDir="$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed" -p:BepDir="$GITHUB_WORKSPACE/.build-refs/bep"
+          test -s bin/Release/net48/SirrohQolAddon.dll
+      - name: Prepare Thunderstore test ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/generate_icon.py
+          python3 - <<'PY'
+          import json, zipfile, pathlib
+          root = pathlib.Path('.')
+          manifest = json.loads((root/'manifest.json').read_text())
+          version = manifest['version_number']
+          output = root / ('SirrohQOLAddon-' + version + '-Thunderstore.zip')
+          files = {
+              'manifest.json': root/'manifest.json',
+              'README.md': root/'README.md',
+              'CHANGELOG.md': root/'CHANGELOG.md',
+              'icon.png': root/'icon.png',
+              'plugins/SirrohQolAddon.dll': root/'bin/Release/net48/SirrohQolAddon.dll',
+          }
+          with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+              for name, p in files.items():
+                  z.write(p, name)
+          with zipfile.ZipFile(output) as z:
+              assert z.testzip() is None
+              assert len(z.read('icon.png')) > 1000
+              assert len(z.read('plugins/SirrohQolAddon.dll')) > 5000
+              print(output.name, z.namelist())
+          PY
+      - name: Upload compiled package
+        uses: actions/upload-artifact@v4
+        with:
+          name: SirrohQOLAddon-0.1.0-Thunderstore
+          path: SirrohQOLAddon-0.1.0-Thunderstore.zip
+          if-no-files-found: error
