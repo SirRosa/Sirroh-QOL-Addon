@@ -75,6 +75,16 @@ jobs:
         with:
           name: Valheim-Swimming-IL-Report
           path: swim-api-report.txt
+      - name: Audit streaming and vanilla pickup IL
+        shell: bash
+        run: |
+          dotnet run --project tools/InspectGameApi.csproj -- --inspect-camera-streaming "$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed/assembly_valheim.dll" > camera-streaming-il.txt
+          grep -E "^(### TYPE|FIELD|METHOD|CALLS)" camera-streaming-il.txt | head -120 || true
+      - name: Upload camera streaming audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: Valheim-Camera-Streaming-IL
+          path: camera-streaming-il.txt
       - name: Compile SirrohQolAddon.dll
         run: |
           dotnet build SirrohQolAddon.csproj -c Release --nologo -p:ReferenceDir="$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed" -p:BepDir="$GITHUB_WORKSPACE/.build-refs/bep"

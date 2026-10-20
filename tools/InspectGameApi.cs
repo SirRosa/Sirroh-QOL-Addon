@@ -3,6 +3,48 @@ using System.Linq;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
+
+if (args.Length == 2 && args[0] == "--inspect-camera-streaming")
+{
+    using var game = AssemblyDefinition.ReadAssembly(args[1]);
+    var targets = new Dictionary<string, string[]> {
+        ["ZoneSystem"] = new [] { "Update", "UpdateZones", "CreateLocalZones", "CreateZone", "GetZone", "GetGroundHeight", "PokeLocalZone" },
+        ["ZNetScene"] = new [] { "Update", "CreateObjects", "CreateDestroyObjects", "UpdateReferencePosition", "SetReferencePosition", "GetReferencePosition" },
+        ["ZNet"] = new [] { "Update", "SetReferencePosition", "GetReferencePosition", "GetReferencePositionPublic", "GetReferencePositionForPeer" },
+        ["ZDOMan"] = new [] { "Update", "FindSectorObjects", "FindSectorObjectsAsync", "GetSectors" },
+        ["Player"] = new [] { "Pickup", "AutoPickup", "Update", "UpdateLocalPlayer" },
+        ["Humanoid"] = new [] { "Pickup" },
+        ["ItemDrop"] = new [] { "CanPickup", "RequestOwn", "Pickup", "Load", "InTar" }
+    };
+    foreach (var pair in targets)
+    {
+        var t = game.MainModule.Types.FirstOrDefault(x=>x.Name == pair.Key);
+        if (t == null) continue;
+        Console.WriteLine("### TYPE " + t.FullName);
+        foreach (var field in t.Fields.Where(f=> f.Name.Contains("reference", StringComparison.OrdinalIgnoreCase)
+            || f.Name.Contains("local", StringComparison.OrdinalIgnoreCase) || f.Name.Contains("zone", StringComparison.OrdinalIgnoreCase) || f.Name.Contains("range", StringComparison.OrdinalIgnoreCase)))
+            Console.WriteLine("FIELD " + field);
+        foreach(var met in t.Methods.Where(m=>pair.Value.Any(x => x == m.Name)))
+        {
+            Console.WriteLine("METHOD " + met.FullName);
+            if (met.HasBody)
+                foreach (var i in met.Body.Instructions)
+                    Console.WriteLine("  " + i);
+        }
+    }
+    Console.WriteLine("CALLS for reference position or local zone management");
+    foreach(var t in game.MainModule.Types.Where(x=>x.Name == "ZoneSystem" || x.Name=="ZNetScene" || x.Name=="ZNet" || x.Name=="ZDOMan" || x.Name=="Player"))
+        foreach(var m in t.Methods.Where(m=>m.HasBody))
+        {
+            var calls = m.Body.Instructions.Where(i=>i.Operand is MethodReference mr &&
+                (mr.Name.Contains("ReferencePos", StringComparison.OrdinalIgnoreCase)
+                || mr.Name.Contains("ReferencePosition", StringComparison.OrdinalIgnoreCase)
+                || mr.Name == "CreateLocalZones" || mr.Name=="PokeLocalZone")).ToArray();
+            if(calls.Length > 0) Console.WriteLine(m.FullName + ": " + string.Join(" | ",calls.Select(x=>x.ToString())));
+        }
+    return;
+}
+
 if (args.Length == 2 && args[0] == "--inspect-swim")
 {
     using var game = AssemblyDefinition.ReadAssembly(args[1]);
