@@ -8,6 +8,27 @@ using Mono.Cecil.Cil;
 
 
 
+
+if (args.Length == 2 && args[0] == "--verify-qol-assets")
+{
+    using var a = AssemblyDefinition.ReadAssembly(args[1]);
+    foreach (string name in new [] {"border","trash","trashmask","trashingborder","RecyclingPanel"})
+    {
+        string logical = "Sirroh.Qol.Assets." + name + ".rgba";
+        var asset = a.MainModule.Resources.FirstOrDefault(r=>r.Name == logical) as EmbeddedResource;
+        if (asset == null) throw new InvalidOperationException("Asset missing from final DLL: "+logical);
+        byte[] bytes = asset.GetResourceData();
+        if (bytes.Length < 8) throw new InvalidOperationException("Asset is incomplete: "+logical);
+        int width = BitConverter.ToInt32(bytes,0), height=BitConverter.ToInt32(bytes,4);
+        if (width < 1 || height < 1 || width > 2048 || height > 2048 ||
+            bytes.Length != 8 + width * height * 4)
+             throw new InvalidOperationException("Invalid embedded PNG conversion: "+logical);
+        Console.WriteLine(logical + " " + width + "x" + height + " confirmed in DLL.");
+    }
+    Console.WriteLine("PASS: all 5 authentic QOL image resources embedded.");
+    return;
+}
+
 if (args.Length == 2 && args[0] == "--inventory-qol-api")
 {
  using var a=AssemblyDefinition.ReadAssembly(args[1]);
