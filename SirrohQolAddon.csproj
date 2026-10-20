@@ -4,12 +4,14 @@
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AssemblyName>SirrohQolAddon</AssemblyName>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <ReferenceDir Condition="'$(ReferenceDir)' == ''">C:/Program Files (x86)/Steam/steamapps/common/Valheim/valheim_Data/Managed</ReferenceDir>
     <BepDir Condition="'$(BepDir)' == ''">C:/Program Files (x86)/Steam/steamapps/common/Valheim/BepInEx/core</BepDir>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="src/**/*.cs" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net48" Version="1.0.3" PrivateAssets="all" />
     <Reference Include="assembly_valheim"><HintPath>$(ReferenceDir)/assembly_valheim.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="assembly_utils"><HintPath>$(ReferenceDir)/assembly_utils.dll</HintPath><Private>false</Private></Reference>

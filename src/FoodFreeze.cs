@@ -21,7 +21,6 @@ namespace Sirroh.Qol
         private static float _nextFireScan;
         private static bool _nearFire;
         private static bool _loggedActivation;
-        private static bool _transpiled;
         [ThreadStatic] private static bool _pauseFoodDecay;
 
         internal static void Install(Plugin host)
@@ -61,7 +60,6 @@ namespace Sirroh.Qol
         private static IEnumerable<CodeInstruction> TranspileUpdateFood(IEnumerable<CodeInstruction> instructions)
         {
             var code = new List<CodeInstruction>(instructions);
-            if (_transpiled) return code;
             // Valheim 1.0: Food.m_time = Food.m_time - local_0, where local_0 = 1 second.
             // Interpose a no-allocation scalar filter ONLY on this subtraction;
             // ALL remaining Player.UpdateFood IL executes unmodified (including food regen).
@@ -84,7 +82,6 @@ namespace Sirroh.Qol
                                       ". Refusing unsafe patch.");
                 throw new InvalidOperationException("Unsupported Player.UpdateFood implementation; cannot safely alter food decay.");
             }
-            _transpiled = true;
             _host?.Log.LogInfo("FoodFreeze: patched exactly one food timer decrement, leaving other food effects intact.");
             return code;
         }
