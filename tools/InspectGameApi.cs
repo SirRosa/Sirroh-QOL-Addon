@@ -3,6 +3,34 @@ using System.Linq;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
+if (args.Length == 2 && args[0] == "--inspect-swim")
+{
+    using var game = AssemblyDefinition.ReadAssembly(args[1]);
+    string[] relevant = { "Character", "Humanoid", "Player", "VisEquipment", "PlayerController" };
+    string[] needles = { "IsSwimming", "HideHandItems", "ShowHandItems", "UpdateEquipment", "EquipItem",
+        "UpdateMotion", "InWater", "UpdateSwimming", "UpdateHandItems", "UnequipItem" };
+    foreach (var typ in game.MainModule.Types.Where(t => relevant.Contains(t.Name)))
+    {
+        Console.WriteLine("TYPE " + typ.FullName);
+        foreach (var field in typ.Fields.Where(f => f.Name.Contains("hide", StringComparison.OrdinalIgnoreCase) || f.Name.Contains("equip", StringComparison.OrdinalIgnoreCase) || f.Name.Contains("swim", StringComparison.OrdinalIgnoreCase)))
+            Console.WriteLine("FIELD " + field.FullName);
+        foreach (var met in typ.Methods.Where(m => needles.Any(n => m.Name.Contains(n, StringComparison.OrdinalIgnoreCase))))
+        {
+            Console.WriteLine("\nMETHOD " + met.FullName);
+            if (met.HasBody) foreach (var il in met.Body.Instructions) Console.WriteLine("  " + il);
+        }
+    }
+    Console.WriteLine("\nCALL SITES involving HideHandItems / ShowHandItems / UnequipItem / IsSwimming");
+    foreach (var typ in game.MainModule.Types)
+        foreach (var met in typ.Methods.Where(m => m.HasBody))
+        {
+            var found = met.Body.Instructions.Where(i => i.Operand is MethodReference mr &&
+                (mr.Name == "HideHandItems" || mr.Name == "ShowHandItems" || mr.Name == "UnequipItem" || mr.Name == "IsSwimming")).ToArray();
+            if (found.Length > 0) Console.WriteLine(met.FullName + ": " + string.Join(" ; ",found.Select(i=>i.ToString())));
+        }
+    return;
+}
+
 if (args.Length == 2 && args[0] == "--verify-swimming")
 {
     using var target = AssemblyDefinition.ReadAssembly(args[1]);
