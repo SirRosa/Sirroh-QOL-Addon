@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.6
+- New Build Camera (based on RunicBuildCamera): toggle with B; no hammer/tool required to activate; hotbar/tool changes never cause camera exit.
+- Construction level controls camera max distance 50m (level 1) to 250m (level 100), and remote pickup radius 10m to 100m.
+- Camera controls support mouse and controller, WASD, vertical controls and run acceleration.
+- Placement/ghost ranges are adjusted only inside relevant methods and restored through Harmony finalizers; no player teleport, no local-player reassignment, and no permanently modified game fields.
+- Bounded loaded-item scan for pickup every 0.25 seconds through vanilla item checks and pickup operation; no global item scans each frame.
+- Swimming Equipment and all five established QOL modules unchanged.
+
 ## 0.1.5
 - Swimming Equipment: fixed the instant weapon-stowing behavior. Valheim also checks IsSwimming in Player.Update before restoring hand items; the previous version missed this third call site.
 - Replace only the IsSwimming calls in Humanoid.UpdateEquipment, Humanoid.EquipItem and Player.Update through exact IL transpilers; other uses of IsSwimming remain untouched.

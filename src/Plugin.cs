@@ -12,7 +12,7 @@ namespace Sirroh.Qol
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "sirro.valheim.qoladdon";
-        public const string Version = "0.1.5";
+        public const string Version = "0.1.6";
         internal static Plugin Instance;
         internal ManualLogSource Log => Logger;
         private Harmony _harmony;
@@ -64,6 +64,7 @@ namespace Sirroh.Qol
             GlowingSigns.Install(this);
             SlopeSafety.Install(this);
             SwimmingEquipment.Install(this);
+            ConstructionCamera.Install(this);
             Logger.LogInfo("Sirroh QOL Addon " + Version + " initialized (Sirroh Overhaul >=0.22.65 required).");
         }
 
@@ -86,9 +87,15 @@ namespace Sirroh.Qol
             catch (Exception e) { Logger.LogWarning(module + ": hook unavailable: " + e); }
         }
 
+        private void Update()
+        {
+            ConstructionCamera.Tick();
+        }
+
         private void OnDestroy()
         {
             StopAllCoroutines();
+            try { ConstructionCamera.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { _harmony?.UnpatchSelf(); } catch (Exception e) { Logger.LogWarning(e); }
             try { GlowingSigns.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             Instance = null;

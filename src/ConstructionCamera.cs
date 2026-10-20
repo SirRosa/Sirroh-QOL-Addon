@@ -23,9 +23,6 @@ namespace Sirroh.Qol
         private static FieldInfo _constructionField;
         private static bool _reportedMissingSkill;
         private static HarmonyLib.AccessTools.FieldRef<Player,float> _placeDistance;
-        private static readonly MethodInfo _takeInput = AccessTools.Method(typeof(Player), "TakeInput", Type.EmptyTypes);
-        [ThreadStatic] private static int _updateDepth;
-        [ThreadStatic] private static bool _realInput;
         [ThreadStatic] private static int _rangeDepth;
         [ThreadStatic] private static float _stationRange;
 
@@ -47,8 +44,6 @@ namespace Sirroh.Qol
             try { _placeDistance = AccessTools.FieldRefAccess<Player, float>("m_maxPlaceDistance"); }
             catch (Exception e) { host.Log.LogWarning("BuildCamera: placement range field unavailable: " + e.Message); }
             Hook("GameCamera.UpdateCamera", typeof(GameCamera), "UpdateCamera", prefix: nameof(CameraPrefix));
-            Hook("Player.Update", typeof(Player), "Update", prefix: nameof(UpdatePrefix), finalizer: nameof(UpdateFinalizer));
-            Hook("Player.TakeInput", typeof(Player), "TakeInput", postfix: nameof(TakeInputPostfix));
             Hook("Player.SetControls", typeof(Player), "SetControls", prefix: nameof(ControlsPrefix));
             Hook("Player.SetMouseLook", typeof(Player), "SetMouseLook", prefix: nameof(MousePrefix));
             Hook("Player.UpdatePlacement", typeof(Player), "UpdatePlacement", prefix: nameof(PlacementPrefix), finalizer: nameof(RangeFinalizer));
@@ -113,7 +108,6 @@ namespace Sirroh.Qol
             _active = false;
             _owner = null;
             _ownerId = 0;
-            _updateDepth = 0;
             _rangeDepth = 0;
             _stationRange = 0f;
             RemoteCameraPickup.Reset();
@@ -209,31 +203,6 @@ namespace Sirroh.Qol
         private static float Axis(string positive, string negative)
             => (ZInput.GetButton(positive) ? 1f : 0f) - (ZInput.GetButton(negative) ? 1f : 0f);
 
-        private static void UpdatePrefix(Player __instance)
-        {
-            if (__instance == _owner && Active)
-            {
-                _updateDepth++;
-                _realInput = false;
-            }
-        }
-
-        private static Exception UpdateFinalizer(Exception __exception, Player __instance)
-        {
-            if (__instance == _owner && _updateDepth > 0) _updateDepth--;
-            if (_updateDepth == 0) _realInput = false;
-            return __exception;
-        }
-
-        private static void TakeInputPostfix(Player __instance, ref bool __result)
-        {
-            if (_updateDepth <= 0 || __instance != _owner || !Active) return;
-            _realInput = __result;
-            // Suppress ordinary combat and movement. UpdatePlacement reinstates
-            // this original value for building/hoe/rake/shovel placement only.
-            __result = false;
-        }
-
         private static void ControlsPrefix(Player __instance,
             ref Vector3 movedir, ref bool attack, ref bool attackHold,
             ref bool secondaryAttack, ref bool secondaryAttackHold,
@@ -264,10 +233,8 @@ namespace Sirroh.Qol
             return lease;
         }
 
-        private static void PlacementPrefix(Player __instance, ref bool takeInput, out RangeLease __state)
+        private static void PlacementPrefix(Player __instance, out RangeLease __state)
         {
-            if (__instance == _owner && Active && _updateDepth > 0)
-                takeInput = _realInput;
             __state = BeginRange(__instance);
         }
 

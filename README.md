@@ -1,6 +1,6 @@
-# Sirroh QOL Addon — 0.1.5 (test release)
+# Sirroh QOL Addon — 0.1.6 (test release)
 
-One BepInEx DLL with six independently configurable features for **Sirroh Overhaul 0.22.65+** on Valheim 1.0.
+One BepInEx DLL with six configurable features plus skill-scaled Build Camera for **Sirroh Overhaul 0.22.65+** on Valheim 1.0.
 
 | Module | Behavior | Safety |
 | --- | --- | --- |
@@ -9,6 +9,7 @@ One BepInEx DLL with six independently configurable features for **Sirroh Overha
 | Food Freeze | Food duration pauses while Resting or near a lit fireplace. | Targeted timer patch leaves vanilla food stats and regeneration active. |
 | Glowing Signs | Color-matched emissive text and a soft glow, without the hard dark outline. | HDR face and GLOW_ON on sign-only cached TMP materials; shared fonts unchanged. |
 | Slope Safety | Prevents player sliding when grounded on slopes. | Cancels ApplySlide and compensates slope gravity while idle; leaves swimming, riding, ships and NPCs alone. |
+| Build Camera | B toggles free build camera with no equipped-tool requirement. Scales with Construction skill. | Original player stays fixed; tool swaps do not exit, local-only camera; bounded pickup via vanilla item pickup. |
 | Swimming Equipment | Wield/change equipped items while swimming. | Exact IL call-site substitution in Humanoid.EquipItem, Humanoid.UpdateEquipment and Player.Update; swimming physics and stamina unaffected. |
 
 Glowing Signs settings: `EmissionIntensity` (default 1.75), `GlowStrength` (default 0.68), `GlowRadius` (default 0.13). Existing sign materials update when values change; glow/bloom visibility also depends on the game's shader variants and post-processing.\n\nEach module can be toggled in `BepInEx/config/sirro.valheim.qoladdon.cfg`. Modules are installed independently: failure to find an optional game method disables only its hook and is logged.
@@ -41,3 +42,15 @@ Swimming equipment is **always on**, with no configuration, restrictions or blac
 The previous v0.1.3 attempt patched `Character.IsSwimming` using a thread-local flag only during two Humanoid methods. In Valheim 1.0, the game also guards **restoring hidden items** in `Player.Update`, leaving equipment stowed. v0.1.5 changes only the three relevant calls to `IsSwimming` inside those game methods. Swimming movement, physics and stamina still use normal `IsSwimming`.
 
 If upgrading from 0.1.3, `06 Swimming Equipment` options in old BepInEx configuration files are ignored. No new keys are created. Do not install the original WieldEquipmentWhileSwimming alongside this addon. In-game validation is required.
+
+## Build Camera — Construction-based (v0.1.6)
+- Press **B** to enter or leave free camera mode, without requiring a hammer. Tool/hotbar swaps retain free camera.
+- Keyboard **WASD**/game movement bindings move the camera; mouse looks; jump/crouch raise/lower; run accelerates. Controller analog sticks supported.
+- Camera range from the stationary player: **50 m at Construction 1** to **250 m at Construction 100**, linear interpolation based on `Sirro.PracaFizyczna.AdditionalSkills.Construction`.
+- Auto-pickup of dropped objects near the camera: **10 m at Construction 1** to **100 m at Construction 100**. Uses the game's pickup and ownership APIs, weight, inventory and normal drop eligibility; scans up to 32 loaded drops once per 0.25 seconds.
+- Remote placement and terrain-building updates use a temporary player placement-distance override scoped to the corresponding methods; original value is restored by a Harmony finalizer.
+- Changing to a hammer, hoe, shovel, rake or any other tool with Valheim build/terrain placement ability does **not** force the camera to exit. Tools that don't support vanilla placement do not gain fake recipes or capabilities.
+- There is no tool restriction or additional build-camera configuration.
+- All previous QOL modules retained without implementation changes.
+
+**Manual test required**: activate with empty hands; move beyond 50 m at low skill, confirm clamp; swap among hammer/hoe/rake without camera snapping back; inspect distant placement and pickup at known Construction levels 1, 50, 100. Test multiplayer pickups and disconnect while active. The game is not launched by CI.

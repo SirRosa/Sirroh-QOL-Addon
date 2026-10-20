@@ -3,9 +3,9 @@ import json
 
 root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
-assert len(source) == 7, sorted(source)
+assert len(source) == 9, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.5"' in source["Plugin"]
+assert 'Version = "0.1.6"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -40,9 +40,27 @@ assert "Transpile(" in source["SwimmingEquipment"]
 assert "code[i].operand = EquipCheck" in source["SwimmingEquipment"]
 for caller in ("Humanoid.UpdateEquipment", "Humanoid.EquipItem", "Player.Update"):
     assert caller in source["SwimmingEquipment"]
+assert "ConstructionCamera.Install(this)" in source["Plugin"]
+assert "ConstructionCamera.Tick()" in source["Plugin"]
+assert "ConstructionCamera.Shutdown()" in source["Plugin"]
+assert "AccessTools.Field(type, \"Construction\")" in source["ConstructionCamera"]
+assert "KeyCode.B" in source["ConstructionCamera"]
+assert "GetJoyRightStickX" in source["ConstructionCamera"]
+assert "UseHotbarItem" not in source["ConstructionCamera"]
+assert "IsBuildToolEquipped" not in source["ConstructionCamera"]
+assert "50f +" in source["ConstructionCamera"] and "200f" in source["ConstructionCamera"]
+assert "10f +" in source["ConstructionCamera"] and "90f" in source["ConstructionCamera"]
+assert "RemoteCameraPickup.Tick" in source["ConstructionCamera"]
+assert "Hud.IsPieceSelectionVisible()" in source["ConstructionCamera"]
+assert "Player.SetMouseLook" in source["ConstructionCamera"]
+assert "Player.SetControls" in source["ConstructionCamera"]
+assert "GetStationBuildRange" in source["ConstructionCamera"]
+assert "UpdatePlacementGhost" in source["ConstructionCamera"]
+assert "GetTotalWeight()" in source["RemoteCameraPickup"]
+assert "RequestOwn()" in source["RemoteCameraPickup"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.5"
+assert manifest["version_number"] == "0.1.6"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
