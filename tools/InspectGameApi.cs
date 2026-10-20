@@ -50,19 +50,21 @@ if (args.Length == 2 && args[0] == "--verify-swimming")
     foreach (var (name, method) in new [] {
       ("Character", "IsSwimming"),
       ("Humanoid", "EquipItem"),
-      ("Humanoid", "UpdateEquipment")
+      ("Humanoid", "UpdateEquipment"),
+      ("Player", "Update")
     })
     {
         var type = target.MainModule.Types.FirstOrDefault(t => t.Name == name)
             ?? throw new InvalidOperationException(name + " missing");
         var methods = type.Methods.Where(m => m.Name == method).ToArray();
-        if (methods.Length == 0) throw new InvalidOperationException(name + "." + method + " missing");
+        if (methods.Length != 1) throw new InvalidOperationException(name + "." + method + " missing or ambiguous");
         foreach (var entry in methods)
         {
             var swimmingCalls = entry.HasBody
                 ? entry.Body.Instructions.Count(i => i.Operand is MethodReference callee && callee.Name == "IsSwimming")
                 : 0;
             Console.WriteLine($"{name}.{method}: {entry.FullName}; Calls IsSwimming={swimmingCalls}");
+            if (name != "Character" && swimmingCalls != 1) throw new InvalidOperationException("Expected exactly one IsSwimming in " + name + "." + method);
         }
     }
     Console.WriteLine("PASS: Valheim exposes swimming equipment patch targets");

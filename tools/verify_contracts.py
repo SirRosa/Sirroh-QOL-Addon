@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 7, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.3"' in source["Plugin"]
+assert 'Version = "0.1.5"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -25,17 +25,24 @@ for key in ("SignEmission", "SignGlowStrength", "SignGlowRadius"):
     assert key in source["Plugin"] and key in source["GlowingSigns"]
 assert "GlowingSigns.RefreshMaterials()" in source["Plugin"]
 assert "SwimmingEquipment.Install(this)" in source["Plugin"]
-assert "SwimmingEquipment.Shutdown()" in source["Plugin"]
-assert "[ThreadStatic]" in source["SwimmingEquipment"]
-assert "new StackTrace" not in source["SwimmingEquipment"]
+assert "SwimmingEquipment.Shutdown()" not in source["Plugin"]
+assert "[ThreadStatic]" not in source["SwimmingEquipment"]
+assert "StackTrace" not in source["SwimmingEquipment"]
 assert "Type.EmptyTypes" in source["SwimmingEquipment"]
-assert "BeforeIsSwimming" in source["SwimmingEquipment"]
-assert "AfterEquipmentFinalizer" in source["SwimmingEquipment"]
+assert "SwimmingEquipmentMode" not in source["SwimmingEquipment"]
+assert "ConfigEntry" not in source["SwimmingEquipment"]
+assert "Config.Bind(\"06 Swimming Equipment\"" not in source["Plugin"]
+assert "SwimmingEquipmentEnabled" not in source["Plugin"]
+assert "SwimmingEquipMode" not in source["Plugin"]
+assert "SwimmingCustomAllowlist" not in source["Plugin"]
+assert "SwimmingBlacklist" not in source["Plugin"]
+assert "Transpile(" in source["SwimmingEquipment"]
+assert "code[i].operand = EquipCheck" in source["SwimmingEquipment"]
+for caller in ("Humanoid.UpdateEquipment", "Humanoid.EquipItem", "Player.Update"):
+    assert caller in source["SwimmingEquipment"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
-for key in ("SwimmingEquipmentEnabled", "SwimmingEquipMode", "SwimmingCustomAllowlist", "SwimmingBlacklist"):
-    assert key in source["Plugin"]
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.3"
+assert manifest["version_number"] == "0.1.5"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")

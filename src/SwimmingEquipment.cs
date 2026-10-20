@@ -5,146 +5,69 @@ using HarmonyLib;
 
 namespace Sirroh.Qol
 {
-    // Recreates the equipped-item logic of WieldEquipmentWhileSwimming without
-    // the reference mod's expensive StackTrace on Character.IsSwimming calls.
-    internal enum SwimmingEquipmentMode
-    {
-        All,
-        WeaponsOnly,
-        ToolsOnly,
-        Custom
-    }
-
+    /// <summary>
+    /// Allow any equipment in water while preserving real swimming everywhere else.
+    /// Replace the EXACT IsSwimming call sites used to stow, equip or restore items.
+    /// No global patches of Character.IsSwimming and no configuration.
+    /// </summary>
     internal static class SwimmingEquipment
     {
-        private static Plugin _host;
-        // Delegates are cached once from the game's non-public accessors.
-        private static Func<Humanoid, ItemDrop.ItemData> _rightItem;
-        private static Func<Humanoid, ItemDrop.ItemData> _leftItem;
-        [ThreadStatic] private static Humanoid _scopedHumanoid;
-        private static HashSet<string> _blacklist = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private static HashSet<string> _custom = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private static readonly MethodInfo Swimming = AccessTools.Method(
+            typeof(Character), "IsSwimming", Type.EmptyTypes);
+        private static readonly MethodInfo EquipCheck = AccessTools.Method(
+            typeof(SwimmingEquipment), nameof(IsSwimmingForEquipment));
 
         internal static void Install(Plugin host)
         {
-            _host = host;
-            MethodInfo right = AccessTools.Method(typeof(Humanoid), "GetRightItem", Type.EmptyTypes);
-            MethodInfo left = AccessTools.Method(typeof(Humanoid), "GetLeftItem", Type.EmptyTypes);
-            if (right == null || left == null)
+            // Each target has exactly one Character.IsSwimming call in Valheim 1.0:
+            // - UpdateEquipment hides weapon + shield automatically in water.
+            // - EquipItem refuses any new item while swimming.
+            // - Player.Update refuses to show previously hidden items while swimming.
+            Patch(host, "Humanoid.UpdateEquipment", typeof(Humanoid), "UpdateEquipment");
+            Patch(host, "Humanoid.EquipItem", typeof(Humanoid), "EquipItem");
+            Patch(host, "Player.Update", typeof(Player), "Update");
+        }
+
+        private static void Patch(Plugin host, string label, Type owner, string method)
+        {
+            MethodInfo target = AccessTools.DeclaredMethod(owner, method);
+            host.Patch("SwimmingEquipment." + label, target,
+                transpiler: AccessTools.Method(typeof(SwimmingEquipment), nameof(Transpile)));
+        }
+
+        private static IEnumerable<CodeInstruction> Transpile(
+            IEnumerable<CodeInstruction> instructions, MethodBase original)
+        {
+            var code = new List<CodeInstruction>(instructions);
+            int matches = 0;
+            for (int i = 0; i < code.Count; i++)
             {
-                host.Log.LogWarning("SwimmingEquipment: Humanoid hand-item accessors missing; module disabled.");
-                _host = null;
-                return;
+                if (!code[i].Calls(Swimming)) continue;
+                matches++;
             }
-            _rightItem = AccessTools.MethodDelegate<Func<Humanoid, ItemDrop.ItemData>>(right);
-            _leftItem = AccessTools.MethodDelegate<Func<Humanoid, ItemDrop.ItemData>>(left);
-            RefreshLists();
-            host.SwimmingBlacklist.SettingChanged += (_, __) => RefreshLists();
-            host.SwimmingCustomAllowlist.SettingChanged += (_, __) => RefreshLists();
+            if (matches != 1)
+                throw new InvalidOperationException("SwimmingEquipment: expected exactly one IsSwimming call in " +
+                    original.DeclaringType?.Name + "." + original.Name + ", found " + matches);
 
-            // Only these Humanoid routines may temporarily see IsSwimming=false.
-            // Swimming movement, drowning, stamina, environment and enemy AI
-            // always get the original Character.IsSwimming result.
-            int scoped = 0;
-            foreach (var method in AccessTools.GetDeclaredMethods(typeof(Humanoid)))
+            for (int i = 0; i < code.Count; i++)
             {
-                if (method.Name != "EquipItem" && method.Name != "UpdateEquipment") continue;
-                host.Patch("SwimmingEquipment." + method.Name, method,
-                    prefix: AccessTools.Method(typeof(SwimmingEquipment), nameof(BeforeEquipment)),
-                    postfix: AccessTools.Method(typeof(SwimmingEquipment), nameof(AfterEquipment)),
-                    finalizer: AccessTools.Method(typeof(SwimmingEquipment), nameof(AfterEquipmentFinalizer)));
-                scoped++;
+                if (!code[i].Calls(Swimming)) continue;
+                // IL already has ldarg.0 (this) immediately before the call.
+                // The original has signature bool Character.IsSwimming().
+                // Replacement takes the same one instance on the evaluation stack.
+                code[i].operand = EquipCheck;
+                break;
             }
-            host.Patch("SwimmingEquipment.IsSwimming",
-                AccessTools.Method(typeof(Character), "IsSwimming", Type.EmptyTypes),
-                prefix: AccessTools.Method(typeof(SwimmingEquipment), nameof(BeforeIsSwimming)),
-                priority: Priority.Last);
-
-            host.Log.LogInfo("SwimmingEquipment initialized: " + scoped +
-                " Humanoid equipment entry points; no global swimming override.");
+            Plugin.Instance?.Log.LogInfo("SwimmingEquipment: replaced one swimming equipment guard in " +
+                original.DeclaringType?.Name + "." + original.Name);
+            return code;
         }
 
-        private static void BeforeEquipment(Humanoid __instance, out Humanoid __state)
+        public static bool IsSwimmingForEquipment(Character character)
         {
-            __state = _scopedHumanoid;
-            _scopedHumanoid = _host != null && _host.SwimmingEquipmentEnabled.Value &&
-                __instance != null && __instance.IsPlayer() ? __instance : null;
-        }
-
-        private static void AfterEquipment(Humanoid __state)
-        {
-            _scopedHumanoid = __state;
-        }
-
-        // Harmony may execute finalizers even on a normal return. Reapplying the
-        // original subject is idempotent and also covers thrown exceptions.
-        private static Exception AfterEquipmentFinalizer(Exception __exception, Humanoid __state)
-        {
-            _scopedHumanoid = __state;
-            return __exception;
-        }
-
-        private static bool BeforeIsSwimming(Character __instance, ref bool __result)
-        {
-            Humanoid current = _scopedHumanoid;
-            if (current == null || __instance != current || _host == null ||
-                !_host.SwimmingEquipmentEnabled.Value || !AllowedEquipment(current))
-                return true;
-            __result = false;
-            return false;
-        }
-
-        private static bool AllowedEquipment(Humanoid player)
-        {
-            return AllowedItem(_rightItem(player)) && AllowedItem(_leftItem(player));
-        }
-
-        private static bool AllowedItem(ItemDrop.ItemData item)
-        {
-            if (item == null) return true;
-            string prefab = item.m_dropPrefab != null ? item.m_dropPrefab.name : "";
-            if (_blacklist.Contains(prefab)) return false;
-            switch (_host.SwimmingEquipMode.Value)
-            {
-                case SwimmingEquipmentMode.WeaponsOnly:
-                    return item.IsWeapon();
-                case SwimmingEquipmentMode.ToolsOnly:
-                    // Game's ItemType.Tool (19), as in the supplied reference.
-                    return (int)item.m_shared.m_itemType == 19;
-                case SwimmingEquipmentMode.Custom:
-                    return _custom.Contains(prefab);
-                default:
-                    return true;
-            }
-        }
-
-        private static HashSet<string> Parse(string entries)
-        {
-            var values = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            if (string.IsNullOrWhiteSpace(entries)) return values;
-            foreach (string name in entries.Split(','))
-            {
-                string trimmed = name.Trim();
-                if (trimmed.Length > 0) values.Add(trimmed);
-            }
-            return values;
-        }
-
-        private static void RefreshLists()
-        {
-            if (_host == null) return;
-            _blacklist = Parse(_host.SwimmingBlacklist.Value);
-            _custom = Parse(_host.SwimmingCustomAllowlist.Value);
-        }
-
-        internal static void Shutdown()
-        {
-            _scopedHumanoid = null;
-            _host = null;
-            _rightItem = null;
-            _leftItem = null;
-            _blacklist.Clear();
-            _custom.Clear();
+            // Players may wield ALL equipment in water. NPCs and other characters
+            // retain their original behavior. Do not alter physics/stamina/animation.
+            return character == null || !character.IsPlayer() && character.IsSwimming();
         }
     }
 }

@@ -1,6 +1,6 @@
 {
   "name": "SirrohQOLAddon",
-  "version_number": "0.1.3",
+  "version_number": "0.1.5",
   "website_url": "https://github.com/SirRosa/Sirroh-QOL-Addon",
   "description": "Six lightweight Valheim QoL features for Sirroh Overhaul 0.22.65: auto repair, safe stamina, food pause, emissive glowing signs slope safety, and swimming equipment.",
   "dependencies": [

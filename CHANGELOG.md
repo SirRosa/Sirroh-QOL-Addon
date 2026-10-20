@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5
+- Swimming Equipment: fixed the instant weapon-stowing behavior. Valheim also checks IsSwimming in Player.Update before restoring hand items; the previous version missed this third call site.
+- Replace only the IsSwimming calls in Humanoid.UpdateEquipment, Humanoid.EquipItem and Player.Update through exact IL transpilers; other uses of IsSwimming remain untouched.
+- Remove ALL swimming module configuration. All items are enabled by default, no exclusions or mode selection.
+- No stack traces or per-frame character scans, no changes to the five already-confirmed QOL modules or to their settings.
+
 ## 0.1.3
 - Reverted all code and resources introduced for `<mat=B/S/G/R/Y>` sign surface variants; 0.1.2 glowing text preserved exactly.
 - Added Wield Equipment While Swimming based on the supplied extracted 1.1.4 reference; scoped `Character.IsSwimming` override for `Humanoid.EquipItem` and `Humanoid.UpdateEquipment`.
