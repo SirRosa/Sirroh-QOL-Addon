@@ -71,6 +71,7 @@ jobs:
         run: |
           dotnet build SirrohQolAddon.csproj -c Release --nologo -p:ReferenceDir="$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed" -p:BepDir="$GITHUB_WORKSPACE/.build-refs/bep"
           test -s bin/Release/net48/SirrohQolAddon.dll
+          dotnet run --project tools/InspectGameApi.csproj --configuration Release -- --verify-sign-resources bin/Release/net48/SirrohQolAddon.dll
           for variant in B S G R Y; do
             strings bin/Release/net48/SirrohQolAddon.dll | grep -q "Sirroh.Qol.Signs.$variant.rgba"
           done
@@ -104,6 +105,6 @@ jobs:
       - name: Upload compiled package
         uses: actions/upload-artifact@v4
         with:
-          name: SirrohQOLAddon-0.1.3-Thunderstore
-          path: SirrohQOLAddon-0.1.3-Thunderstore.zip
+          name: SirrohQOLAddon-0.1.4-Thunderstore
+          path: SirrohQOLAddon-0.1.4-Thunderstore.zip
           if-no-files-found: error

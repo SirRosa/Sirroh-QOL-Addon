@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.3 (test release)
+# Sirroh QOL Addon — 0.1.4 (last test release)
 
 One BepInEx DLL with five independently configurable features for **Sirroh Overhaul 0.22.65+** on Valheim 1.0.
 
@@ -12,7 +12,7 @@ One BepInEx DLL with five independently configurable features for **Sirroh Overh
 
 ## Materials for signs
 
-Type a marker anywhere in the sign text, including at the beginning, e.g. `<mat=G>Moja tabliczka`. The marker remains in the normal multiplayer ZDO text but is stripped from **visible** text for clients with Sirroh QOL Addon. These five variants replace the *entire sign's mesh material albedo* with a custom surface texture and adjust metallic/smoothness while preserving Valheim UVs and physical geometry:
+Type a marker anywhere in the sign text, including at the beginning, e.g. `<mat=G>Moja tabliczka`. The marker remains in the normal multiplayer ZDO text but is stripped from **visible** text for clients with Sirroh QOL Addon. These five variants replace the *physical sign mesh's material albedo* with a custom surface texture and adjust metallic/smoothness while preserving Valheim UVs and physical geometry:
 
 | Marker | Polish | Finish |
 | --- | --- | --- |
@@ -47,3 +47,9 @@ The five decompiled mods in `Sirroh-Compatibility-Builder` were consulted as **b
 5. Stand on a steep hill, walk downhill, jump/fall, then ride a mount and ship. Only grounded player sliding should be disabled.
 
 **Test build**: Source is compiled and Thunderstore ZIP is uploaded by the GitHub Actions `Build Thunderstore` workflow. Runtime behavior still requires in-game verification.
+
+
+## Surface troubleshooting (0.1.4)
+The mod now finds MeshRenderers by searching the complete ZNetView/Piece prefab hierarchy rather than only Sign's direct children, and reacts to Sign.UpdateText as well as permission callbacks. It logs each tagged sign once per successful material change, e.g. `[Info:Sirroh QOL Addon] SignMaterials: sign=..., variant=G, foundRenderers=2, replacedMaterials=2 [OK]`.
+
+When a mesh cannot be found or a surface shader has no supported texture slot, it logs `NO MESH` or `NO REPLACEMENT` instead of silently reporting success. Remove the marker to restore the original sign. The four gameplay modules and existing Glowing Signs HDR text behavior are unmodified.

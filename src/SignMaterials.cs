@@ -22,6 +22,10 @@ namespace Sirroh.Qol
         private static readonly int SmoothnessId = Shader.PropertyToID("_Smoothness");
         private static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
         private static Plugin _host;
+        private static readonly AccessTools.FieldRef<Sign, bool> Viewable =
+            AccessTools.FieldRefAccess<Sign, bool>("m_isViewable");
+        private static readonly AccessTools.FieldRef<Sign, string> OriginalText =
+            AccessTools.FieldRefAccess<Sign, string>("m_currentText");
         private static bool _textureErrorLogged;
 
         internal static void Install(Plugin host)
@@ -41,7 +45,7 @@ namespace Sirroh.Qol
             if (_host == null || __instance == null) return;
             // For an asynchronous access check, the callback below is authoritative.
             // An already-granted sign may refresh synchronously as well.
-            if (__instance.m_isViewable) Refresh(__instance);
+            if (Viewable(__instance)) Refresh(__instance);
         }
 
         private static void AfterPermission(Sign __instance)
@@ -59,13 +63,13 @@ namespace Sirroh.Qol
                 // stripped TMP string. Only display permitted content.
                 string displayed = text.text ?? "";
                 SignMaterialHolder holder = sign.GetComponent<SignMaterialHolder>();
-                if (!_host.SignSurfaceEnabled.Value || !sign.m_isViewable)
+                if (!_host.SignSurfaceEnabled.Value || !Viewable(sign))
                 {
                     if (holder != null) holder.Restore();
                     return;
                 }
 
-                string raw = sign.m_currentText ?? "";
+                string raw = OriginalText(sign) ?? "";
                 string clean = SignMaterialMarkup.Strip(raw, out char variant);
                 if (variant != '\0')
                 {

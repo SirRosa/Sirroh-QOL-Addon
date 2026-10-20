@@ -3,6 +3,23 @@ using System.Linq;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
+// Also check the final compiled DLL, not just generated files on disk.
+if (args.Length == 2 && args[0] == "--verify-sign-resources")
+{
+    using var dll = AssemblyDefinition.ReadAssembly(args[1]);
+    var resources = dll.MainModule.Resources.ToDictionary(r => r.Name);
+    foreach (char code in "BSGRY")
+    {
+        string key = $"Sirroh.Qol.Signs.{code}.rgba";
+        if (!resources.TryGetValue(key, out var value) ||
+            value is not EmbeddedResource bytes ||
+            bytes.GetResourceData().Length != 256 * 256 * 4)
+            throw new InvalidOperationException("Missing or incomplete embedded texture: " + key);
+        Console.WriteLine(key + ": embedded RGBA 256x256 OK");
+    }
+    Console.WriteLine("PASS: five valid embedded sign surfaces in compiled SirrohQolAddon.dll");
+    return;
+}
 var asm = AssemblyDefinition.ReadAssembly(args[0]);
 string[] types = {"InventoryGui", "CraftingStation", "Player", "Character", "Sign", "Fireplace", "Player/Food"};
 var root = asm.MainModule.Types;

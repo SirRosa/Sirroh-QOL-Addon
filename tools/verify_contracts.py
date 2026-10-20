@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 8, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.3"' in source["Plugin"]
+assert 'Version = "0.1.4"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -32,9 +32,14 @@ assert "Sirroh.Qol.Signs." in source["SignMaterials"]
 assert "EnableKeyword" in source["GlowingSigns"]
 assert "ZDOVars" not in source["SignMaterials"] and "ZDO::Set" not in source["SignMaterials"]
 assert "StringComparison.OrdinalIgnoreCase" in source["SignMaterialMarkup"]
+assert 'nameof(AfterUpdateText)' in source["SignMaterials"]
+assert 'GetComponentInParent<ZNetView>()' in source["SignMaterials"]
+assert 'OriginalText(sign)' in source["SignMaterials"]
+assert 'Viewable(sign)' in source["SignMaterials"]
+assert 'Shader.Find("Standard")' in source["SignMaterials"]
 for code in ("'B'", "'S'", "'G'", "'R'", "'Y'"):
     assert code in source["SignMaterialMarkup"] and code in source["SignMaterials"]
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.3"
+assert manifest["version_number"] == "0.1.4"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
