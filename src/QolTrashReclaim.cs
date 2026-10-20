@@ -115,7 +115,7 @@ namespace Sirroh.Qol
         private static bool Dragging(InventoryGui __instance)
         {
             if (_buttonRect == null || _confirm != null || __instance == null ||
-                __instance.m_dragItem == null || __instance.m_dragInventory == null)
+                QolGameAccess.DragItem(__instance) == null || QolGameAccess.DragSource(__instance) == null)
                 return true;
             if (!Input.GetMouseButtonUp(0) || !RectTransformUtility.RectangleContainsScreenPoint(
                 _buttonRect, Input.mousePosition, null)) return true;
@@ -127,12 +127,12 @@ namespace Sirroh.Qol
         {
             if (_confirm != null || InventoryGui.instance == null || Player.m_localPlayer == null) return;
             InventoryGui gui = InventoryGui.instance;
-            ItemDrop.ItemData item = gui.m_dragItem;
-            Inventory from = gui.m_dragInventory;
-            int count = Math.Min(gui.m_dragAmount, item?.m_stack ?? 0);
+            ItemDrop.ItemData item = QolGameAccess.DragItem(gui);
+            Inventory from = QolGameAccess.DragSource(gui);
+            int count = Math.Min(QolGameAccess.DragAmount(gui), item?.m_stack ?? 0);
             if (!CanOperate(item, from, count)) return;
             // Detach UI drag only after taking stable references.
-            gui.SetupDragItem(null, null, 0);
+            QolGameAccess.ClearDrag(gui);
             ReclaimResult result = TryReclaim(item, from, count);
             if (result == ReclaimResult.Unsupported) ShowConfirmation(item, from, count);
             else if (result == ReclaimResult.Full)
@@ -149,8 +149,8 @@ namespace Sirroh.Qol
             Inventory inventory = player.GetInventory();
             bool fromPlayer = origin == inventory;
             bool fromCurrentChest = InventoryGui.instance != null &&
-                InventoryGui.instance.m_currentContainer != null &&
-                origin == InventoryGui.instance.m_currentContainer.m_inventory;
+                QolGameAccess.CurrentContainer(InventoryGui.instance) != null &&
+                origin == QolGameAccess.Inventory(QolGameAccess.CurrentContainer(InventoryGui.instance));
             if (!fromPlayer && !fromCurrentChest) return false;
             if (item.m_equipped || fromPlayer && item.m_gridPos.y == 0)
             {

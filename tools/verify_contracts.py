@@ -3,7 +3,7 @@ import json
 
 root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
-assert len(source) == 12, sorted(source)
+assert len(source) == 13, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
 assert 'Version = "0.1.9"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
@@ -80,10 +80,10 @@ assert "KeyCode.Q" in source["QolNearbyInventory"] and "KeyCode.R" in source["Qo
 assert "RangeSq = 100f * 100f" in source["QolNearbyInventory"]
 assert "MoveItemToThis" in source["QolNearbyInventory"]
 assert "ClaimOwnership()" in source["QolNearbyInventory"]
-assert "CheckAccess(player.GetPlayerID())" in source["QolNearbyInventory"]
+assert "QolGameAccess.CheckAccess(chest, player.GetPlayerID())" in source["QolNearbyInventory"]
 assert "QolFavorites.IsFavorite" in source["QolNearbyInventory"]
 assert "m_gridPos.y == 0" in source["QolNearbyInventory"]
-assert "GetButtonPos" in source["QolFavorites"]
+assert "QolGameAccess.ButtonPosition" in source["QolFavorites"]
 assert "SirrohQOLFavorites_" in source["QolFavorites"]
 assert "BinaryFormatter" not in source["QolFavorites"]
 assert "Czy na pewno chcesz zniszczyć ten przedmiot?" in source["QolTrashReclaim"]

@@ -47,15 +47,15 @@ namespace Sirroh.Qol
             return grid != null && InventoryGui.instance != null &&
                 grid == InventoryGui.instance.m_playerGrid &&
                 Player.m_localPlayer != null && Modifier &&
-                InventoryGui.instance.m_dragItem == null;
+                QolGameAccess.DragItem(InventoryGui.instance) == null;
         }
 
         private static bool Left(InventoryGrid __instance, object clickHandler)
         {
             if (!Valid(__instance) || clickHandler == null) return true;
-            Vector2i pos = __instance.GetButtonPos(((Component)clickHandler).gameObject);
+            Vector2i pos = QolGameAccess.ButtonPosition(__instance, ((Component)clickHandler).gameObject);
             if (pos.x < 0 || pos.y < 0) return true;
-            ItemDrop.ItemData item = __instance.m_inventory.GetItemAt(pos.x, pos.y);
+            ItemDrop.ItemData item = QolGameAccess.Inventory(__instance).GetItemAt(pos.x, pos.y);
             if (item == null || item.m_shared == null) return true;
             Ensure();
             if (!Names.Add(item.m_shared.m_name)) Names.Remove(item.m_shared.m_name);
@@ -66,10 +66,10 @@ namespace Sirroh.Qol
         private static bool Right(InventoryGrid __instance, object element)
         {
             if (!Valid(__instance) || element == null) return true;
-            Vector2i pos = __instance.GetButtonPos(((Component)element).gameObject);
+            Vector2i pos = QolGameAccess.ButtonPosition(__instance, ((Component)element).gameObject);
             if (pos.x < 0 || pos.y < 0) return true;
             Ensure();
-            int key = pos.y * __instance.m_inventory.GetWidth() + pos.x;
+            int key = pos.y * QolGameAccess.Inventory(__instance).GetWidth() + pos.x;
             if (!Slots.Add(key)) Slots.Remove(key);
             Save();
             return false;

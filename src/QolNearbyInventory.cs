@@ -22,7 +22,6 @@ namespace Sirroh.Qol
         private static readonly List<ItemDrop.ItemData> PlayerItems = new List<ItemDrop.ItemData>(64);
         private static bool _busy;
         private static float _nextKey;
-        private static bool _reportedNoChests;
 
         internal static void Install(Plugin host)
         {
@@ -43,7 +42,7 @@ namespace Sirroh.Qol
             Player player = Player.m_localPlayer;
             if (player == null || player.IsDead() || player.IsTeleporting() || InventoryGui.instance == null)
                 return;
-            if (InventoryGui.instance.m_dragItem != null) return;
+            if (QolGameAccess.DragItem(InventoryGui.instance) != null) return;
             GameObject selected = EventSystem.current == null ? null : EventSystem.current.currentSelectedGameObject;
             if (selected != null && selected.GetComponentInParent<TMP_InputField>() != null) return;
             bool quick = Input.GetKeyDown(KeyCode.Q);
@@ -93,7 +92,7 @@ namespace Sirroh.Qol
                 {
                     Container chest = Nearby[ci];
                     if (chest == null || !CanAccess(chest, player)) { skipped++; continue; }
-                    ZNetView view = chest.m_nview;
+                    ZNetView view = QolGameAccess.View(chest);
                     if (!view.IsOwner())
                     {
                         view.ClaimOwnership();
@@ -103,7 +102,7 @@ namespace Sirroh.Qol
                         if (view == null || !view.IsOwner()) { skipped++; continue; }
                     }
                     if (!CanAccess(chest, player)) { skipped++; continue; }
-                    Inventory inventory = chest.m_inventory;
+                    Inventory inventory = QolGameAccess.Inventory(chest);
                     if (inventory == null || inventory == src) continue;
                     Existing.Clear();
                     foreach (ItemDrop.ItemData item in inventory.GetAllItems())
@@ -117,7 +116,7 @@ namespace Sirroh.Qol
                         touched++;
                         // Save only once after the complete batch. The vanilla
                         // inventoryChanged callback also synchronizes ownership.
-                        chest.Save();
+                        QolGameAccess.Save(chest);
                     }
                     if (ci % 4 == 3) yield return null; // keep the game responsive
                 }
@@ -189,8 +188,8 @@ namespace Sirroh.Qol
             Known.RemoveWhere(c => c == null);
             foreach (Container chest in Known)
             {
-                if (chest == null || chest.m_nview == null || chest.m_inventory == null ||
-                    !chest.m_nview.IsValid() || !chest.gameObject.activeInHierarchy) continue;
+                if (chest == null || QolGameAccess.View(chest) == null || QolGameAccess.Inventory(chest) == null ||
+                    !QolGameAccess.View(chest).IsValid() || !chest.gameObject.activeInHierarchy) continue;
                 if ((chest.transform.position - origin).sqrMagnitude > RangeSq) continue;
                 Nearby.Add(chest);
             }
@@ -200,13 +199,13 @@ namespace Sirroh.Qol
 
         private static bool CanAccess(Container chest, Player player)
         {
-            if (chest == null || player == null || chest.m_nview == null || !chest.m_nview.IsValid() ||
-                chest.m_inventory == null || chest.m_nview.GetZDO() == null) return false;
-            if (!chest.CheckAccess(player.GetPlayerID())) return false;
+            if (chest == null || player == null || QolGameAccess.View(chest) == null || !QolGameAccess.View(chest).IsValid() ||
+                QolGameAccess.Inventory(chest) == null || QolGameAccess.View(chest).GetZDO() == null) return false;
+            if (!QolGameAccess.CheckAccess(chest, player.GetPlayerID())) return false;
             if (chest.m_checkGuardStone && !PrivateArea.CheckAccess(chest.transform.position, 0f, true, false))
                 return false;
-            if (chest.IsInUse() || chest.m_nview.GetZDO().GetInt("InUse", 0) == 1) return false;
-            if (chest.m_piece != null && !chest.m_piece.IsPlacedByPlayer()) return false;
+            if (chest.IsInUse() || QolGameAccess.View(chest).GetZDO().GetInt("InUse", 0) == 1) return false;
+            if (QolGameAccess.Piece(chest) != null && !QolGameAccess.Piece(chest).IsPlacedByPlayer()) return false;
             // On shared worlds, skip ship containers: their ownership and
             // interpolation can change while a remote batch is underway.
             if (chest.GetComponentInParent<Ship>() != null) return false;
