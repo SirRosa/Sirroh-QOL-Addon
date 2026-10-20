@@ -183,6 +183,11 @@ namespace Sirroh.Qol
         {
             Player player = Player.m_localPlayer;
             Inventory inventory = player.GetInventory();
+            // Enchanted/custom-data items need a provider-specific refund.
+            // Treat them as unsupported instead of silently losing sockets,
+            // enchantment investment, or unique instance metadata.
+            if (item.m_customData != null && item.m_customData.Count > 0)
+                return ReclaimResult.Unsupported;
             Recipe recipe = FindRecipe(item);
             if (recipe == null || recipe.m_resources == null || recipe.m_resources.Length == 0 ||
                 recipe.m_amount < 1 || count % recipe.m_amount != 0)
@@ -192,6 +197,7 @@ namespace Sirroh.Qol
             FreeReserved.Clear();
             FinalAmount.Clear();
             int batches = count / recipe.m_amount;
+            var received = new List<Yield>();
             try
             {
                 foreach (Piece.Requirement res in recipe.m_resources)
@@ -241,7 +247,6 @@ namespace Sirroh.Qol
                 // Place resources first; source is removed only once all
                 // resources were actually inserted. Roll back counts on
                 // unexpected insertion failure.
-                var received = new List<Yield>();
                 foreach (var entry in Yields)
                 {
                     ItemDrop.ItemData added = inventory.AddItem(entry.Prefab.name, entry.Count,
@@ -265,6 +270,7 @@ namespace Sirroh.Qol
             }
             catch (Exception e)
             {
+                if (received.Count > 0) UndoReceived(inventory, received);
                 _host?.Log.LogWarning("TrashReclaim: transaction error: " + e);
                 return ReclaimResult.Error;
             }
