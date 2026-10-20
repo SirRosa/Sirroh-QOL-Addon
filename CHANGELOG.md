@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.7
+- Build Camera: streaming interest position follows the free camera, not the stationary player body. Valheim ZoneSystem and ZNetScene now stream terrain and nearby ZDOs around the camera (including on remote multiplayer hosts subject to latency).
+- Hook Player.LateUpdate, which normally resets ZNet reference position to the player body; reassert camera position after that update and after camera movement.
+- Restore the player body's original streaming reference immediately when camera is disabled, on focus loss, disconnect or plugin shutdown. Player transform and network identity remain unchanged.
+- Keep remote pickup strictly camera-centered, expand the bounded loaded-drop scan to 64 items / 0.25s, and log the first successful camera-relative pickup.
+- The six existing modules and all existing configs remain unmodified.
+
 ## 0.1.6
 - New Build Camera (based on RunicBuildCamera): toggle with B; no hammer/tool required to activate; hotbar/tool changes never cause camera exit.
 - Construction level controls camera max distance 50m (level 1) to 250m (level 100), and remote pickup radius 10m to 100m.

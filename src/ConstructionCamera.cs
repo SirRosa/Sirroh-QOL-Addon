@@ -22,6 +22,8 @@ namespace Sirroh.Qol
         private static float _level = 1f;
         private static FieldInfo _constructionField;
         private static bool _reportedMissingSkill;
+        private static bool _streamingWarningReported;
+        private static bool _referenceChanged;
         private static HarmonyLib.AccessTools.FieldRef<Player,float> _placeDistance;
         [ThreadStatic] private static int _rangeDepth;
         [ThreadStatic] private static float _stationRange;
@@ -51,6 +53,10 @@ namespace Sirroh.Qol
             Hook("CraftingStation.GetStationBuildRange", typeof(CraftingStation), "GetStationBuildRange", postfix: nameof(StationRangePostfix));
             Hook("Player.PieceRayTest", typeof(Player), "PieceRayTest", postfix: nameof(PieceRayPostfix));
             Hook("Player.SetLocalPlayer", typeof(Player), "SetLocalPlayer", postfix: nameof(LocalPlayerPostfix));
+            // Player.LateUpdate writes ZNet's reference position from the body.
+            // Immediately afterward reassert the camera reference. Both ZoneSystem
+            // and ZNetScene use that value to load terrain + replicated objects.
+            Hook("Player.LateUpdate", typeof(Player), "LateUpdate", postfix: nameof(StreamingPostfix));
             _host.Log.LogInfo("BuildCamera: installed; B toggles independently of equipped tool.");
         }
 
@@ -76,6 +82,9 @@ namespace Sirroh.Qol
             }
             if (!_active) return;
             RefreshSkill(player);
+            // Stream around the camera before pickup scans. On a dedicated
+            // server remote ZDOs arrive as the server receives our new ref-pos.
+            SetCameraReference();
             RemoteCameraPickup.Tick(player, _position, PickupRange);
         }
 
@@ -98,6 +107,7 @@ namespace Sirroh.Qol
             _pitch = Mathf.DeltaAngle(0f, angles.x);
             RefreshSkill(player, true);
             _position = ClampCamera(_position);
+            SetCameraReference();
             _host.Log.LogInfo("BuildCamera ON; Konstrukcja=" + _level.ToString("0.0") +
                 " camera=" + CameraRange.ToString("0.0") + "m pickup=" + PickupRange.ToString("0.0") + "m");
         }
@@ -105,6 +115,9 @@ namespace Sirroh.Qol
         internal static void Stop()
         {
             if (_active) _host?.Log.LogInfo("BuildCamera OFF");
+            // Restore the normal streaming reference before losing ownership,
+            // including focus-loss, death, disconnect, unload and plugin shutdown.
+            RestorePlayerReference();
             _active = false;
             _owner = null;
             _ownerId = 0;
@@ -197,6 +210,7 @@ namespace Sirroh.Qol
                 }
             }
             __instance.transform.SetPositionAndRotation(_position, Quaternion.Euler(_pitch, _yaw, 0f));
+            SetCameraReference();
             return false;
         }
 
@@ -266,6 +280,40 @@ namespace Sirroh.Qol
             Vector3 fromPlayer = point - _owner.transform.position;
             float allowed = CameraRange;
             if (fromPlayer.sqrMagnitude > allowed * allowed) __result = false;
+        }
+
+        private static void StreamingPostfix(Player __instance)
+        {
+            if (_active && __instance == _owner && Player.m_localPlayer == _owner)
+                SetCameraReference();
+        }
+
+        private static void SetCameraReference()
+        {
+            if (!_active || !ValidOwner()) return;
+            ZNet net = ZNet.instance;
+            if (net == null)
+            {
+                if (!_streamingWarningReported)
+                {
+                    _streamingWarningReported = true;
+                    _host?.Log.LogWarning("BuildCamera: ZNet unavailable, remote chunk streaming is not active.");
+                }
+                return;
+            }
+            // This is only ZNet's interest/streaming reference. The local Player
+            // transform, ZDO position and network character ownership NEVER move.
+            net.SetReferencePosition(_position);
+            _referenceChanged = true;
+        }
+
+        private static void RestorePlayerReference()
+        {
+            if (!_referenceChanged) return;
+            _referenceChanged = false;
+            ZNet net = ZNet.instance;
+            if (net != null && _owner != null)
+                net.SetReferencePosition(_owner.transform.position);
         }
 
         private static void LocalPlayerPostfix(Player __instance)

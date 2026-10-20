@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.6 (test release)
+# Sirroh QOL Addon — 0.1.7 (test release)
 
 One BepInEx DLL with six configurable features plus skill-scaled Build Camera for **Sirroh Overhaul 0.22.65+** on Valheim 1.0.
 
@@ -54,3 +54,11 @@ If upgrading from 0.1.3, `06 Swimming Equipment` options in old BepInEx configur
 - All previous QOL modules retained without implementation changes.
 
 **Manual test required**: activate with empty hands; move beyond 50 m at low skill, confirm clamp; swap among hammer/hoe/rake without camera snapping back; inspect distant placement and pickup at known Construction levels 1, 50, 100. Test multiplayer pickups and disconnect while active. The game is not launched by CI.
+
+## Camera streaming and remote pickup (v0.1.7)
+
+When B is active, the Valheim `ZNet.SetReferencePosition` used by ZoneSystem (terrain chunks) and ZNetScene (networked objects) follows the Build Camera instead of the character's position. The player stays physically at the original location, including in multiplayer, and normal streaming reference is restored when B is turned off. This enables rendering and dropped-item discovery near the camera, but does not increase the game's simulation-distance settings and remote data may arrive with network latency.
+
+Pickup range is measured **only from the camera location** (10m at Construction level 1, scaling to 100m at level 100), not the player's location. Pickup uses Valheim's standard inventory/weight/ownership logic and active ward access; excludes fish. The scanner processes at most 64 loaded drops every 0.25 seconds, not the entire world's drops. The first successful camera-based pickup is logged once.
+
+**Multiplayer caveat:** Valheim has a single streaming reference per peer. While build camera is active far from the body, chunks near the *player body* may be unloaded locally. Always test this feature on a backup world, particularly at the 250m maximum distance; restored player streaming may need a short load when B is switched off.

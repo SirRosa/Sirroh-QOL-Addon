@@ -14,6 +14,8 @@ namespace Sirroh.Qol
         private static int _cursor;
         private static readonly Dictionary<ZDOID,float> RetryAfter = new Dictionary<ZDOID,float>();
         private static float _nextWarn;
+        private static int _pickedFromCamera;
+        private static bool _loggedCameraOrigin;
         private static readonly FieldInfo WardsField = AccessTools.Field(typeof(PrivateArea), "m_allAreas");
         private static readonly Func<PrivateArea, bool> WardEnabled =
             AccessTools.MethodDelegate<Func<PrivateArea, bool>>(AccessTools.Method(typeof(PrivateArea), "IsEnabled"));
@@ -31,14 +33,17 @@ namespace Sirroh.Qol
                 if (!(InstancesField?.GetValue(null) is List<ItemDrop> drops) || drops.Count == 0) return;
                 Inventory inventory = player.GetInventory();
                 if (inventory == null) return;
-                int checkedCount = Math.Min(32, drops.Count);
+                int checkedCount = Math.Min(64, drops.Count);
                 float rangeSq = range * range;
                 for (int n=0; n<checkedCount; n++)
                 {
                     if (_cursor >= drops.Count) _cursor = 0;
                     ItemDrop drop = drops[_cursor++];
                     if (drop == null || !drop.isActiveAndEnabled || !drop.gameObject.activeInHierarchy) continue;
-                    if ((drop.transform.position - camera).sqrMagnitude > rangeSq) continue;
+                    // Strictly camera-relative. Never use player's transform or
+                    // the vanilla auto-pickup radius as the reach center.
+                    Vector3 offsetFromCamera = drop.transform.position - camera;
+                    if (offsetFromCamera.sqrMagnitude > rangeSq) continue;
                     ZNetView view = drop.GetComponent<ZNetView>();
                     if (view == null || !view.IsValid() || view.GetZDO() == null) continue;
                     ZDOID id = view.GetZDO().m_uid;
@@ -55,7 +60,16 @@ namespace Sirroh.Qol
                     if (inventory.GetTotalWeight() + drop.m_itemData.GetWeight(-1) > player.GetMaxCarryWeight()) continue;
                     drop.RequestOwn();
                     if (!drop.CanPickup(true)) continue;
-                    player.Pickup(drop.gameObject, true, true);
+                    if (player.Pickup(drop.gameObject, true, true))
+                    {
+                        _pickedFromCamera++;
+                        if (!_loggedCameraOrigin)
+                        {
+                            _loggedCameraOrigin = true;
+                            Plugin.Instance?.Log.LogInfo("BuildCamera pickup: camera-centered collection confirmed; first pickup #" +
+                                _pickedFromCamera + ", camera radius " + range.ToString("0.0") + "m.");
+                        }
+                    }
                 }
                 if (RetryAfter.Count > 256)
                 {
@@ -94,6 +108,8 @@ namespace Sirroh.Qol
             _nextScan = 0f;
             _cursor = 0;
             RetryAfter.Clear();
+            _pickedFromCamera = 0;
+            _loggedCameraOrigin = false;
         }
     }
 }
