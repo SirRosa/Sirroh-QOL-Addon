@@ -50,10 +50,10 @@ namespace Sirroh.Qol
                 InventoryGui.instance.m_dragItem == null;
         }
 
-        private static bool Left(InventoryGrid __instance, UIInputHandler clickHandler)
+        private static bool Left(InventoryGrid __instance, object clickHandler)
         {
             if (!Valid(__instance) || clickHandler == null) return true;
-            Vector2i pos = __instance.GetButtonPos(clickHandler.gameObject);
+            Vector2i pos = __instance.GetButtonPos(((Component)clickHandler).gameObject);
             if (pos.x < 0 || pos.y < 0) return true;
             ItemDrop.ItemData item = __instance.m_inventory.GetItemAt(pos.x, pos.y);
             if (item == null || item.m_shared == null) return true;
@@ -63,10 +63,10 @@ namespace Sirroh.Qol
             return false;
         }
 
-        private static bool Right(InventoryGrid __instance, UIInputHandler element)
+        private static bool Right(InventoryGrid __instance, object element)
         {
             if (!Valid(__instance) || element == null) return true;
-            Vector2i pos = __instance.GetButtonPos(element.gameObject);
+            Vector2i pos = __instance.GetButtonPos(((Component)element).gameObject);
             if (pos.x < 0 || pos.y < 0) return true;
             Ensure();
             int key = pos.y * __instance.m_inventory.GetWidth() + pos.x;
