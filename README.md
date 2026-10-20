@@ -79,3 +79,6 @@ Valheim sectors measure 64m. On the standard network simulation distance near=2,
 - Both hotkeys are intentionally fixed, without extra configuration. **Remove the original Recycle_N_Reclaim and QuickStackStore DLLs** to prevent competing Harmony hooks.
 
 **Critical in-game QA:** Q/R near multiple accessible and private chests; large inventories, hotbar, favorite items and slots; source stack partial counts; reclaim quality upgrades; full inventory rejection; Tak/nie non-recyclable item; multiplayer ownership and ward rules. All untested gameplay behavior must be validated before treating this as a stable release.
+
+- Inventory actions also include **Sort**, **Store All**, **Quickstack Q**, **Restock R** buttons. Sort reorders only unprotected inventory slots, without moving the hotbar, equipped gear or favorited slots/items. Store All sends eligible non-hotbar, non-favorited items to the currently opened chest (including types not already in it), with the same network ownership and ward checks.
+- Unlike Quickstack, Restock may refill an existing hotbar stack; nothing is *taken away* from the hotbar.

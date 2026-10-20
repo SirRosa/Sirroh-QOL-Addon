@@ -6,6 +6,8 @@
 - Protect favorites and the whole hotbar; LeftAlt+left click toggles item-name favorites, LeftAlt+right click toggles slot favorites. Save to per-player plain text config; no insecure BinaryFormatter.
 - Preserve original PNGs from the two extracted mods as embedded RGBA sprites (border, trash, trashmask, trashingborder, RecyclingPanel), and keep natural Valheim GUI feedback.
 - Avoid expensive continuous chest queries: maintain awake-registered chest set; query only on Q/R, pre-index current item names, process bounded chest batches, check privacy/ward/ownership/in-use, await ownership before moving items and save once per chest.
+- Add the original manual Sort and Store All actions as compact inventory buttons alongside Q/R, with sorting that preserves favorite slots and hotbar; Store All writes only to the player's open chest and respects ownership and favorites.
+- Restock can TOP UP hotbar stacks (but never removes them); Quickstack/Sort/Store/Trash never remove hotbar items.
 - Exclude ship/mobile inventory for safety in multiplayer. No artificial global ZDO scanning or forced remote ownership under other player's in-use status.
 - Existing seven modules unmodified aside from integration entry points.
 

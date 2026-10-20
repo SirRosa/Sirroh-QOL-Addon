@@ -68,6 +68,7 @@ namespace Sirroh.Qol
             QolFavorites.Install(this);
             QolNearbyInventory.Install(this);
             QolTrashReclaim.Install(this);
+            QolStoreSort.Install(this);
             Logger.LogInfo("Sirroh QOL Addon " + Version + " initialized (Sirroh Overhaul >=0.22.65 required).");
         }
 
@@ -99,6 +100,7 @@ namespace Sirroh.Qol
         private void OnDestroy()
         {
             StopAllCoroutines();
+            try { QolStoreSort.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { QolNearbyInventory.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { QolTrashReclaim.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { QolFavorites.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }

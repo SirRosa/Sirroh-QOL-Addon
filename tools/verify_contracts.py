@@ -3,7 +3,7 @@ import json
 
 root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
-assert len(source) == 13, sorted(source)
+assert len(source) == 14, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
 assert 'Version = "0.1.9"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
@@ -75,6 +75,11 @@ assert "RequestOwn()" in source["RemoteCameraPickup"]
 assert "QolFavorites.Install(this)" in source["Plugin"]
 assert "QolNearbyInventory.Install(this)" in source["Plugin"]
 assert "QolTrashReclaim.Install(this)" in source["Plugin"]
+assert "QolStoreSort.Install(this)" in source["Plugin"]
+assert "QolStoreSort.Shutdown()" in source["Plugin"]
+assert "QolFavorites.IsFavoriteSlot" in source["QolStoreSort"]
+assert "StartStoreCurrent" in source["QolNearbyInventory"]
+assert "m_gridPos.y == 0" in source["QolStoreSort"]
 assert "QolNearbyInventory.Tick();" in source["Plugin"]
 assert "KeyCode.Q" in source["QolNearbyInventory"] and "KeyCode.R" in source["QolNearbyInventory"]
 assert "RangeSq = 100f * 100f" in source["QolNearbyInventory"]
