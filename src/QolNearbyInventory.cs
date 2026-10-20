@@ -275,7 +275,10 @@ namespace Sirroh.Qol
             if (!QolGameAccess.CheckAccess(chest, player.GetPlayerID())) return false;
             if (chest.m_checkGuardStone && !PrivateArea.CheckAccess(chest.transform.position, 0f, true, false))
                 return false;
-            if (chest.IsInUse() || QolGameAccess.View(chest).GetZDO().GetInt("InUse", 0) == 1) return false;
+            bool openedLocally = InventoryGui.instance != null &&
+                QolGameAccess.CurrentContainer(InventoryGui.instance) == chest;
+            if (!openedLocally && (chest.IsInUse() ||
+                QolGameAccess.View(chest).GetZDO().GetInt("InUse", 0) == 1)) return false;
             if (QolGameAccess.Piece(chest) != null && !QolGameAccess.Piece(chest).IsPlacedByPlayer()) return false;
             // On shared worlds, skip ship containers: their ownership and
             // interpolation can change while a remote batch is underway.
