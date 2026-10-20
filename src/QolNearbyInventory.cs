@@ -71,7 +71,10 @@ namespace Sirroh.Qol
                 PlayerItems.Clear();
                 foreach (ItemDrop.ItemData item in src.GetAllItems())
                 {
-                    if (item == null || item.m_shared == null || item.m_gridPos.y == 0) continue;
+                    if (item == null || item.m_shared == null) continue;
+                    // Quickstack never removes from hotbar. Restock only
+                    // ADDS to existing hotbar stacks and does not remove them.
+                    if (quick && item.m_gridPos.y == 0) continue;
                     if (item.m_equipped) continue;
                     if (item.m_shared.m_maxStackSize <= 1) continue;
                     if (quick && QolFavorites.IsFavorite(item, src)) continue;
