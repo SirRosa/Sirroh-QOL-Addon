@@ -114,6 +114,12 @@ jobs:
         with:
           name: Inventory-QOL-API
           path: inventory-qol-api.txt
+      - name: Embed original QuickStack and Reclaim art
+        shell: bash
+        run: |
+          python3 -m pip install --user --quiet Pillow
+          python3 tools/generate_qol_assets.py
+          test $(find .build-refs/assets -name '*.rgba' | wc -l) -eq 5
       - name: Compile SirrohQolAddon.dll
         run: |
           dotnet build SirrohQolAddon.csproj -c Release --nologo -p:ReferenceDir="$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed" -p:BepDir="$GITHUB_WORKSPACE/.build-refs/bep"
@@ -148,6 +154,6 @@ jobs:
       - name: Upload compiled package
         uses: actions/upload-artifact@v4
         with:
-          name: SirrohQOLAddon-0.1.8-Thunderstore
-          path: SirrohQOLAddon-0.1.8-Thunderstore.zip
+          name: SirrohQOLAddon-0.1.9-Thunderstore
+          path: SirrohQOLAddon-0.1.9-Thunderstore.zip
           if-no-files-found: error

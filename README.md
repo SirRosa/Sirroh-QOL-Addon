@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.8 (test release)
+# Sirroh QOL Addon — 0.1.9 (test release)
 
 One BepInEx DLL with six configurable features plus skill-scaled Build Camera for **Sirroh Overhaul 0.22.65+** on Valheim 1.0.
 
@@ -67,3 +67,15 @@ Pickup range is measured **only from the camera location** (10m at Construction 
 The Valheim 1.0 IL audit found the literal `Local player destroyed` inside `Player.OnDestroy()`. When the ZNet streaming reference follows a distant camera, `ZNetScene.CreateDestroyObjects` enumerates the camera's active sectors and `ZNetScene.RemoveObjects` destroys no-longer-relevant object instances. A stationary player's ZNetView can be removed too.
 
 Valheim sectors measure 64m. On the standard network simulation distance near=2, `PointInsideActiveArea` uses a maximum Chebyshev distance of 1.5 sectors (96m) from camera sector center, and (non-classic mode) a tighter radial distance of 1.75 sectors (112m). The camera may be 32m away from its sector center, so a 100m camera radius is not guaranteed safe. The addon now imposes a fixed **60m** bound at near>=2 or a **30m** bound at near=1 (the latter can arise from lower server/graphics simulation settings). This is a *movement limit*, not a patch preventing removal of out-of-range world entities. The 10–100m pickup radius still scales with Construction, centered on the camera.
+
+## Quickstack / Restock + Trash / Reclaim (v0.1.9)
+
+- **Q** — move all eligible non-hotbar, non-favorited stackable items to accessible chests within **100 m**, but only into chests already containing that kind of item.
+- **R** — fill existing non-hotbar incomplete stacks from accessible chests within **100 m**; never creates new item types in inventory, never removes hotbar contents.
+- **Favorites** — hold **LeftAlt** and left-click an item in the player inventory to toggle favoriting the item type; hold **LeftAlt** and right-click a slot to toggle favoriting the slot. Both protect from Quickstack and Trash, indicated by the original gold/blue QuickStack border sprite. Preferences persist per player in BepInEx config as text (replaces BinaryFormatter).
+- **Trash / Reclaim** — drag an item to a single icon in your inventory. When a valid crafting recipe exists and cumulative inventory slots and carrying capacity suffice, full ingredient yield including upgrades is returned. No separate reclaim button in chests. If the item has no recoverable recipe, a Polish **Tak/Nie** modal confirms deletion. When a reclaimable item doesn't fit, nothing is deleted; the operation is refused.
+- The original 5 PNG assets (QuickStack border / trash / trash mask and Reclaim border / recycling panel) are embedded in one DLL. No separate asset files or mod DLLs required.
+- Loaded, accessible chests are acquired via vanilla ZNetView ownership and processed in bounded batches. Avoids continuous world scans and preserves private/ward access.
+- Both hotkeys are intentionally fixed, without extra configuration. **Remove the original Recycle_N_Reclaim and QuickStackStore DLLs** to prevent competing Harmony hooks.
+
+**Critical in-game QA:** Q/R near multiple accessible and private chests; large inventories, hotbar, favorite items and slots; source stack partial counts; reclaim quality upgrades; full inventory rejection; Tak/nie non-recyclable item; multiplayer ownership and ward rules. All untested gameplay behavior must be validated before treating this as a stable release.

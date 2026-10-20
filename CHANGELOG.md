@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.9
+- Add integrated Recycle N Reclaim and QuickStackStore modules (no extra plugin DLLs). Q: Quickstack into nearby accessible chests within 100m; R: Restock existing non-hotbar stacks from nearby chests within 100m.
+- One Trash/Reclaim UI target: dragging a supported recipe-based item returns 100% ingredient yield, including quality upgrades, only after preflighting cumulative inventory stack/slot/weight capacity; non-recyclable items ask for explicit "Czy na pewno chcesz zniszczyć ten przedmiot?" Tak/Nie before deleting.
+- Protect favorites and the whole hotbar; LeftAlt+left click toggles item-name favorites, LeftAlt+right click toggles slot favorites. Save to per-player plain text config; no insecure BinaryFormatter.
+- Preserve original PNGs from the two extracted mods as embedded RGBA sprites (border, trash, trashmask, trashingborder, RecyclingPanel), and keep natural Valheim GUI feedback.
+- Avoid expensive continuous chest queries: maintain awake-registered chest set; query only on Q/R, pre-index current item names, process bounded chest batches, check privacy/ward/ownership/in-use, await ownership before moving items and save once per chest.
+- Exclude ship/mobile inventory for safety in multiplayer. No artificial global ZDO scanning or forced remote ownership under other player's in-use status.
+- Existing seven modules unmodified aside from integration entry points.
+
 ## 0.1.8
 - Fix critical Build Camera player destruction when camera streaming reference moves too far from the character's original sector. This was ZNetScene.RemoveObjects removing the local player ZNetView after its ZDO dropped outside the synced near area, not a visual rendering optimization.
 - Uncouple camera distance completely from Construction level. Default synced near-area >=2: fixed 60m camera radius. Low near-area 1: fixed 30m radius. Dynamic network-distance read once per 2 seconds, never allow more than 60m.

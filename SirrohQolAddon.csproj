@@ -24,5 +24,8 @@
     <Reference Include="UnityEngine"><HintPath>$(ReferenceDir)/UnityEngine.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="BepInEx"><HintPath>$(BepDir)/BepInEx.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="0Harmony"><HintPath>$(BepDir)/0Harmony.dll</HintPath><Private>false</Private></Reference>
+    <EmbeddedResource Include=".build-refs/assets/*.rgba">
+      <LogicalName>Sirroh.Qol.Assets.%(Filename).rgba</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>
