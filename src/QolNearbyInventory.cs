@@ -54,6 +54,70 @@ namespace Sirroh.Qol
             _host.StartCoroutine(Execute(player, quick));
         }
 
+        internal static void StartArea(bool quick)
+        {
+            if (_host == null || _busy || Player.m_localPlayer == null) return;
+            _host.StartCoroutine(Execute(Player.m_localPlayer, quick));
+        }
+
+        internal static void StartStoreCurrent()
+        {
+            if (_host == null || _busy || Player.m_localPlayer == null) return;
+            _host.StartCoroutine(StoreCurrent(Player.m_localPlayer));
+        }
+
+        private static IEnumerator StoreCurrent(Player player)
+        {
+            _busy = true;
+            try
+            {
+                InventoryGui gui = InventoryGui.instance;
+                Container chest = gui == null ? null : QolGameAccess.CurrentContainer(gui);
+                if (chest == null || !CanAccess(chest, player))
+                {
+                    player.Message(MessageHud.MessageType.TopLeft, "Otwórz dostępną skrzynię.");
+                    yield break;
+                }
+                ZNetView view = QolGameAccess.View(chest);
+                if (!view.IsOwner())
+                {
+                    view.ClaimOwnership();
+                    float deadline = Time.realtimeSinceStartup + .9f;
+                    while (view != null && !view.IsOwner() && Time.realtimeSinceStartup < deadline)
+                        yield return null;
+                }
+                if (view == null || !view.IsOwner() || !CanAccess(chest, player))
+                {
+                    player.Message(MessageHud.MessageType.TopLeft, "Brak uprawnień do zapisu w skrzyni.");
+                    yield break;
+                }
+                Inventory playerInv = player.GetInventory();
+                Inventory chestInv = QolGameAccess.Inventory(chest);
+                if (playerInv == null || chestInv == null) yield break;
+                var snapshot = new List<ItemDrop.ItemData>(playerInv.GetAllItems());
+                int moved = 0;
+                foreach (ItemDrop.ItemData item in snapshot)
+                {
+                    if (item == null || !playerInv.ContainsItem(item) ||
+                        item.m_gridPos.y == 0 || item.m_equipped ||
+                        QolFavorites.IsFavorite(item, playerInv)) continue;
+                    int before = item.m_stack;
+                    chestInv.MoveItemToThis(playerInv, item);
+                    moved += playerInv.ContainsItem(item) ? Math.Max(0, before - item.m_stack) : before;
+                }
+                if (moved > 0)
+                {
+                    QolGameAccess.Save(chest);
+                    PlayFeedback(chest, player);
+                }
+                player.Message(MessageHud.MessageType.TopLeft, "Store All: przeniesiono " + moved + " szt.");
+            }
+            finally
+            {
+                _busy = false;
+            }
+        }
+
         private static IEnumerator Execute(Player player, bool quick)
         {
             if (_busy) yield break;
