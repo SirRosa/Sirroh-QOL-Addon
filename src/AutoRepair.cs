@@ -20,7 +20,7 @@ namespace Sirroh.Qol
             _host = host;
             if (HaveRepairable == null || RepairOne == null)
             {
-                host.Logger.LogWarning("AutoRepair: vanilla GUI repair methods missing; leaving vanilla intact.");
+                host.Log.LogWarning("AutoRepair: vanilla GUI repair methods missing; leaving vanilla intact.");
                 return;
             }
             host.Patch("AutoRepair", AccessTools.Method(typeof(CraftingStation), "Interact"),
@@ -47,7 +47,7 @@ namespace Sirroh.Qol
                 InventoryGui gui = InventoryGui.instance;
                 if (gui == null) yield break;
                 // Fail closed if the GUI exposes a selected station and it does not match.
-                if (CurrentStation != null && CurrentStation.GetValue(gui) != station) yield break;
+                if (CurrentStation != null && !ReferenceEquals(CurrentStation.GetValue(gui), station)) yield break;
                 // One attempt per carried item. The vanilla routines enforce station level,
                 // proper repair eligibility and other modded crafting rules.
                 int limit = Player.m_localPlayer.GetInventory().GetAllItems().Count;
@@ -61,14 +61,14 @@ namespace Sirroh.Qol
                     if (after <= before + 0.001f) break; // no progress: never loop indefinitely
                     repaired++;
                 }
-                if (repaired > 0) _host.Logger.LogDebug("AutoRepair: " + repaired + " items repaired.");
+                if (repaired > 0) _host.Log.LogDebug("AutoRepair: " + repaired + " items repaired.");
             }
             catch (Exception e)
             {
                 if (!_errorLogged)
                 {
                     _errorLogged = true;
-                    _host.Logger.LogWarning("AutoRepair disabled for this attempt: " + e);
+                    _host.Log.LogWarning("AutoRepair disabled for this attempt: " + e);
                 }
             }
             finally { _pending = false; }

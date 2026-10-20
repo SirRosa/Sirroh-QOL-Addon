@@ -28,7 +28,7 @@ namespace Sirroh.Qol
             _host = host;
             if (Foods == null || FoodTime == null)
             {
-                host.Logger.LogWarning("FoodFreeze: food timer layout changed; safe fallback is to leave food untouched.");
+                host.Log.LogWarning("FoodFreeze: food timer layout changed; safe fallback is to leave food untouched.");
                 return;
             }
             int count = 0;
@@ -40,7 +40,7 @@ namespace Sirroh.Qol
                     postfix: AccessTools.Method(typeof(FoodFreeze), nameof(AfterUpdate)));
                 count++;
             }
-            if (count == 0) host.Logger.LogWarning("FoodFreeze: Player.UpdateFood not found.");
+            if (count == 0) host.Log.LogWarning("FoodFreeze: Player.UpdateFood not found.");
         }
 
         private static void BeforeUpdate(Player __instance, out bool __state)
@@ -111,7 +111,7 @@ namespace Sirroh.Qol
         {
             if (_warning) return;
             _warning = true;
-            _host.Logger.LogWarning("FoodFreeze failed safely; vanilla UpdateFood remains active: " + e);
+            _host.Log.LogWarning("FoodFreeze failed safely; vanilla UpdateFood remains active: " + e);
         }
     }
 }

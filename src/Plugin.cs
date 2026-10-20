@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
+using BepInEx.Logging;
 using HarmonyLib;
 
 namespace Sirroh.Qol
@@ -13,6 +14,7 @@ namespace Sirroh.Qol
         public const string Guid = "sirro.valheim.qoladdon";
         public const string Version = "0.1.0";
         internal static Plugin Instance;
+        internal ManualLogSource Log => Logger;
         private Harmony _harmony;
 
         internal ConfigEntry<bool> AutoRepairEnabled;

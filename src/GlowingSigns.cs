@@ -64,7 +64,7 @@ namespace Sirroh.Qol
             {
                 if (_warned) return;
                 _warned = true;
-                _host.Logger.LogWarning("GlowingSigns skipped one sign: " + e);
+                _host.Log.LogWarning("GlowingSigns skipped one sign: " + e);
             }
         }
 
