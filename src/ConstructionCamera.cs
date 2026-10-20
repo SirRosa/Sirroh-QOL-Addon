@@ -190,7 +190,7 @@ namespace Sirroh.Qol
                 float speed = ZInput.GetButton("Run") ? 30f : 10f;
                 _position = ClampCamera(_position + velocity * speed * time);
                 float ground = 0f;
-                if (ZoneSystem.instance != null && ZoneSystem.instance.GetGroundHeight(_position, ref ground) && _position.y < ground + 0.2f)
+                if (ZoneSystem.instance != null && ZoneSystem.instance.GetGroundHeight(_position, out ground) && _position.y < ground + 0.2f)
                 {
                     _position.y = ground + 0.2f;
                     _position = ClampCamera(_position);
