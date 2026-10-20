@@ -124,6 +124,9 @@ jobs:
         run: |
           dotnet build SirrohQolAddon.csproj -c Release --nologo -p:ReferenceDir="$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed" -p:BepDir="$GITHUB_WORKSPACE/.build-refs/bep"
           test -s bin/Release/net48/SirrohQolAddon.dll
+      - name: Validate original graphics inside compiled DLL
+        run: |
+          dotnet run --project tools/InspectGameApi.csproj -- --verify-qol-assets bin/Release/net48/SirrohQolAddon.dll
       - name: Prepare Thunderstore test ZIP
         shell: bash
         run: |
