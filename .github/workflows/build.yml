@@ -50,6 +50,17 @@ jobs:
             test -n "$source"
             cp "$source" ".build-refs/bep/$f"
           done
+      - name: Inspect game runtime APIs and relevant IL
+        shell: bash
+        run: |
+          dotnet run --project tools/InspectGameApi.csproj -- "$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed/assembly_valheim.dll" > game-api-report.txt
+          wc -l game-api-report.txt
+          head -100 game-api-report.txt
+      - name: Upload game API evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: Valheim-QOL-API-Report
+          path: game-api-report.txt
       - name: Compile SirrohQolAddon.dll
         run: |
           dotnet build SirrohQolAddon.csproj -c Release --nologo -p:ReferenceDir="$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed" -p:BepDir="$GITHUB_WORKSPACE/.build-refs/bep"
