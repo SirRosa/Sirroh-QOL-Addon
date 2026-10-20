@@ -53,7 +53,7 @@ jobs:
       - name: Inspect game runtime APIs and relevant IL
         shell: bash
         run: |
-          dotnet run --project tools/InspectGameApi.csproj -- "$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed/assembly_valheim.dll" > game-api-report.txt
+          dotnet run --project tools/InspectGameApi.csproj -- "$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed/assembly_valheim.dll" | tee game-api-report.txt
           wc -l game-api-report.txt
           head -100 game-api-report.txt
       - name: Upload game API evidence
