@@ -83,6 +83,12 @@ namespace Sirroh.Qol
                 (inv != null && Slots.Contains(item.m_gridPos.y * inv.GetWidth() + item.m_gridPos.x));
         }
 
+        internal static bool IsFavoriteSlot(Vector2i pos, Inventory inv)
+        {
+            Ensure();
+            return inv != null && Slots.Contains(pos.y * inv.GetWidth() + pos.x);
+        }
+
         internal static bool IsNameFavorite(ItemDrop.ItemData item)
         {
             Ensure();
