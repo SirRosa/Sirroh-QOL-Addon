@@ -98,6 +98,18 @@ namespace Sirroh.Qol
             Image baseImage = root.GetComponent<Image>() ?? root.AddComponent<Image>();
             baseImage.raycastTarget = true;
             if (QolFavorites.TrashMask != null) baseImage.sprite = QolFavorites.TrashMask;
+            if (QolFavorites.ReclaimBorder != null)
+            {
+                GameObject frame = new GameObject("ReclaimBorder", typeof(RectTransform), typeof(Image));
+                frame.transform.SetParent(root.transform, false);
+                RectTransform borderRect = frame.GetComponent<RectTransform>();
+                borderRect.anchorMin = Vector2.zero;
+                borderRect.anchorMax = Vector2.one;
+                borderRect.offsetMin = borderRect.offsetMax = Vector2.zero;
+                Image frameImage = frame.GetComponent<Image>();
+                frameImage.sprite = QolFavorites.ReclaimBorder;
+                frameImage.raycastTarget = false;
+            }
         }
 
         private static bool Dragging(InventoryGui __instance)
@@ -282,6 +294,7 @@ namespace Sirroh.Qol
             root.anchoredPosition = Vector2.zero;
             _confirm.transform.SetAsLastSibling();
             Image bg = _confirm.GetComponent<Image>();
+            if (QolFavorites.RecyclePanel != null) bg.sprite = QolFavorites.RecyclePanel;
             bg.color = new Color(.075f, .07f, .065f, .98f);
             AddText("ConfirmationText", root, "Czy na pewno chcesz zniszczyć ten przedmiot?",
                 new Vector2(0f, 44f), new Vector2(490f, 88f), 22f);
