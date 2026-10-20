@@ -26,6 +26,7 @@ namespace Sirroh.Qol
         internal ConfigEntry<bool> FreezeNearFire;
         internal ConfigEntry<float> FireRadius;
         internal ConfigEntry<bool> GlowSignsEnabled;
+        internal ConfigEntry<bool> SignSurfaceEnabled;
         internal ConfigEntry<float> SignEmission;
         internal ConfigEntry<float> SignGlowStrength;
         internal ConfigEntry<float> SignGlowRadius;
@@ -46,6 +47,7 @@ namespace Sirroh.Qol
             FireRadius = Config.Bind("03 Food Freeze", "FireRadius", 12f,
                 new ConfigDescription("Distance to check for burning fireplaces.", new AcceptableValueRange<float>(2f, 35f)));
             GlowSignsEnabled = Config.Bind("04 Glowing Signs", "Enabled", true, "Sign-only emissive HDR text with soft, color-matched glow.");
+            SignSurfaceEnabled = Config.Bind("04 Glowing Signs", "MaterialTags", true, "Interpret <mat=B/S/G/R/Y> as custom physical sign materials.");
             SignEmission = Config.Bind("04 Glowing Signs", "EmissionIntensity", 1.75f,
                 new ConfigDescription("HDR brightness of sign glyphs (bloom depends on graphics settings).", new AcceptableValueRange<float>(1f, 3f)));
             SignGlowStrength = Config.Bind("04 Glowing Signs", "GlowStrength", 0.68f,
