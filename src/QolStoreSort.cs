@@ -107,7 +107,7 @@ namespace Sirroh.Qol
                 return name != 0 ? name : b.m_quality.CompareTo(a.m_quality);
             });
             for (int i=0;i<movable.Count;i++) movable[i].m_gridPos = slots[i];
-            inventory.Changed(false,false);
+            QolGameAccess.NotifyChanged(inventory);
             player.Message(MessageHud.MessageType.TopLeft,"Sort: uporządkowano ekwipunek.");
         }
 
