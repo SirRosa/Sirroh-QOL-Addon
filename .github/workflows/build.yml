@@ -105,6 +105,15 @@ jobs:
         with:
           name: Simulation-Distance-IL
           path: simulation-radius-il.txt
+      - name: Audit inventory and quickstack APIs
+        shell: bash
+        run: |
+          dotnet run --project tools/InspectGameApi.csproj -- --inventory-qol-api "$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed/assembly_valheim.dll" | tee inventory-qol-api.txt
+      - name: Upload inventory API
+        uses: actions/upload-artifact@v4
+        with:
+          name: Inventory-QOL-API
+          path: inventory-qol-api.txt
       - name: Compile SirrohQolAddon.dll
         run: |
           dotnet build SirrohQolAddon.csproj -c Release --nologo -p:ReferenceDir="$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed" -p:BepDir="$GITHUB_WORKSPACE/.build-refs/bep"
