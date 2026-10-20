@@ -5,6 +5,40 @@ using Mono.Cecil;
 using Mono.Cecil.Cil;
 
 
+
+if (args.Length == 2 && args[0] == "--diagnose-player-destruction")
+{
+    using var assembly = AssemblyDefinition.ReadAssembly(args[1]);
+    string[] relevantTypes = { "ZNetScene", "ZoneSystem", "ZNet", "ZDOMan", "Player" };
+    string[] wanted = { "CreateDestroyObjects", "RemoveObjects", "DestroyObjects", "IsObjectInRange", "IsInActiveArea", "OutsideActiveArea",
+      "GetReferencePosition", "SetReferencePosition", "GetZone", "GetActiveArea", "OnDestroy", "SetLocalPlayer", "LateUpdate", "Update" };
+    foreach (var type in assembly.MainModule.Types.Where(t => relevantTypes.Contains(t.Name)))
+    {
+        Console.WriteLine("TYPE " + type.FullName);
+        foreach (var f in type.Fields.Where(f=> f.Name.Contains("active", StringComparison.OrdinalIgnoreCase) ||
+             f.Name.Contains("distant", StringComparison.OrdinalIgnoreCase) ||
+             f.Name.Contains("zone", StringComparison.OrdinalIgnoreCase) ||
+             f.Name.Contains("sector", StringComparison.OrdinalIgnoreCase) ||
+             f.Name.Contains("reference", StringComparison.OrdinalIgnoreCase) ||
+             f.Name.Contains("area", StringComparison.OrdinalIgnoreCase)))
+             Console.WriteLine("FIELD " + f.FullName + (f.HasConstant ? " CONSTANT="+f.Constant : ""));
+        foreach (var m in type.Methods.Where(m => wanted.Any(n => m.Name.Equals(n, StringComparison.OrdinalIgnoreCase))
+            || (type.Name=="ZNetScene" && (m.Name.Contains("Remove") || m.Name.Contains("Destroy") || m.Name.Contains("Range") || m.Name.Contains("Zone") || m.Name.Contains("Outside")))
+            || (type.Name=="ZoneSystem" && (m.Name.Contains("ActiveArea") || m.Name.Contains("Zone")))))
+        {
+            Console.WriteLine("METHOD " + m.FullName);
+            if (!m.HasBody) continue;
+            foreach(var i in m.Body.Instructions) Console.WriteLine("  "+i);
+        }
+    }
+    Console.WriteLine("CALLS in player destruction logging");
+    foreach(var t in assembly.MainModule.Types.Where(t=>relevantTypes.Contains(t.Name)))
+      foreach(var m in t.Methods.Where(m=>m.HasBody))
+        foreach(var instr in m.Body.Instructions.Where(i=>i.Operand is string v && v.Contains("Local player destroyed")))
+            Console.WriteLine("LOG " + m.FullName + " @ "+instr);
+    return;
+}
+
 if (args.Length == 2 && args[0] == "--inspect-camera-streaming")
 {
     using var game = AssemblyDefinition.ReadAssembly(args[1]);
