@@ -72,7 +72,7 @@ jobs:
           dotnet build SirrohQolAddon.csproj -c Release --nologo -p:ReferenceDir="$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed" -p:BepDir="$GITHUB_WORKSPACE/.build-refs/bep"
           test -s bin/Release/net48/SirrohQolAddon.dll
           for variant in B S G R Y; do
-            strings bin/Release/net48/SirrohQolAddon.dll | grep -q "Sirroh.Qol.Signs.$variant.png"
+            strings bin/Release/net48/SirrohQolAddon.dll | grep -q "Sirroh.Qol.Signs.$variant.rgba"
           done
       - name: Prepare Thunderstore test ZIP
         shell: bash

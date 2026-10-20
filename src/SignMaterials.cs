@@ -136,7 +136,7 @@ namespace Sirroh.Qol
             if (Array.IndexOf(Variants, variant) < 0) return null;
             try
             {
-                string name = "Sirroh.Qol.Signs." + variant + ".png";
+                string name = "Sirroh.Qol.Signs." + variant + ".rgba";
                 using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
                 {
                     if (stream == null)
@@ -156,7 +156,8 @@ namespace Sirroh.Qol
                         if (n <= 0) throw new EndOfStreamException(name);
                         count += n;
                     }
-                    Texture2D texture = new Texture2D(2, 2, TextureFormat.RGBA32, true)
+                    if (data.Length != 256 * 256 * 4) throw new InvalidDataException("Invalid 256x256 RGBA sign surface: " + name);
+                    Texture2D texture = new Texture2D(256, 256, TextureFormat.RGBA32, true)
                     {
                         name = "Sirroh Sign Albedo " + variant,
                         wrapMode = TextureWrapMode.Repeat,
@@ -164,11 +165,8 @@ namespace Sirroh.Qol
                         anisoLevel = 2,
                         hideFlags = HideFlags.HideAndDontSave
                     };
-                    if (!ImageConversion.LoadImage(texture, data, true))
-                    {
-                        UnityEngine.Object.Destroy(texture);
-                        return null;
-                    }
+                    texture.LoadRawTextureData(data);
+                    texture.Apply(true, true); // GPU-backed texture with mipmaps; discard CPU pixels.
                     Textures[variant] = texture;
                     return texture;
                 }
@@ -187,7 +185,7 @@ namespace Sirroh.Qol
         internal static void Shutdown()
         {
             // Restore original renderer material references before disposing cached clones.
-            foreach (SignMaterialHolder holder in UnityEngine.Object.FindObjectsOfType<SignMaterialHolder>())
+            foreach (SignMaterialHolder holder in UnityEngine.Object.FindObjectsByType<SignMaterialHolder>(FindObjectsSortMode.None))
                 if (holder != null) holder.Restore();
             foreach (Material mat in MaterialCache.Values)
                 if (mat != null) UnityEngine.Object.Destroy(mat);

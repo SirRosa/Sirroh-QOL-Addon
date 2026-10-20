@@ -12,6 +12,9 @@ for code in "BSGRY":
     width, height, depth, mode = struct.unpack(">IIBB", data[16:26])
     assert (width, height, depth, mode) == (256, 256, 8, 6)
     assert len(data) > 1000
-    colors[code] = data
+    rgba = (textures / (code + ".rgba")).read_bytes()
+    assert len(rgba) == 256 * 256 * 4
+    assert rgba[3::4] == bytes([255]) * (256 * 256)
+    colors[code] = rgba
 assert len({zlib.crc32(value) for value in colors.values()}) == 5
 print("PASS: five distinct 256x256 RGBA sign texture variants")

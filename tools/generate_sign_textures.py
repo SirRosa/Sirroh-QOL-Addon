@@ -58,7 +58,13 @@ def write_texture(code, color, amplitude, scratches):
     OUT.mkdir(parents=True, exist_ok=True)
     path = OUT / (code + ".png")
     path.write_bytes(png)
-    print(f"{code}: {path} ({len(png)} bytes)")
+    rgba = bytearray()
+    for line in range(SIZE):
+        start = line * (SIZE * 4 + 1) + 1
+        rgba.extend(pixels[start : start + SIZE * 4])
+    raw = OUT / (code + ".rgba")
+    raw.write_bytes(rgba)
+    print(f"{code}: {path} ({len(png)} bytes), {raw} ({len(rgba)} bytes)")
 
 for code, args in PALETTES.items():
     write_texture(code, *args)

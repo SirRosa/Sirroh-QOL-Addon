@@ -7,7 +7,7 @@ One BepInEx DLL with five independently configurable features for **Sirroh Overh
 | Auto Repair | On valid crafting-station interaction, repairs eligible inventory items using the game's own UI repair methods. | Valheim 1.0 false Interact return handled; station check, next-frame GUI, bounded vanilla repairs. |
 | Safe Stamina | Local player spends no stamina when there are no hostile creatures within the configured 25 m radius. | 0.25 s cached enemy scan; squared distances, no NPC or remote-player mutation. |
 | Food Freeze | Food duration pauses while Resting or near a lit fireplace. | Targeted timer patch leaves vanilla food stats and regeneration active. |
-| Glowing Signs | Emissive letters plus five new sign surface materials through `<mat=X>` tags. | Five procedurally generated 256px textures embedded in the DLL; locally swapped physical sign renderers, not global materials. |
+| Glowing Signs | Emissive letters plus five new sign surface materials through `<mat=X>` tags. | Five 256px sign textures generated as RGBA resources and embedded in the DLL; locally swapped physical sign renderers, not global materials. |
 | Slope Safety | Prevents player sliding when grounded on slopes. | Cancels ApplySlide and compensates slope gravity while idle; leaves swimming, riding, ships and NPCs alone. |
 
 ## Materials for signs
