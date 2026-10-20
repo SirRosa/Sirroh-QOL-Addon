@@ -18,10 +18,13 @@ namespace Sirroh.Qol
         private static Sprite _trash;
         private static Sprite _trashMask;
         private static Sprite _reclaimBorder;
-        private static Texture2D[] _textures = new Texture2D[4];
+        private static Sprite _recyclePanel;
+        private static Texture2D[] _textures = new Texture2D[5];
 
         internal static Sprite TrashIcon => _trash;
         internal static Sprite TrashMask => _trashMask;
+        internal static Sprite ReclaimBorder => _reclaimBorder;
+        internal static Sprite RecyclePanel => _recyclePanel;
 
         internal static void Install(Plugin host)
         {
@@ -35,6 +38,7 @@ namespace Sirroh.Qol
             _trash = ReadSprite("trash");
             _trashMask = ReadSprite("trashmask");
             _reclaimBorder = ReadSprite("trashingborder");
+            _recyclePanel = ReadSprite("RecyclingPanel");
         }
 
         private static bool Modifier => Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
@@ -195,7 +199,8 @@ namespace Sirroh.Qol
                         case "border": _textures[0] = texture; break;
                         case "trash": _textures[1] = texture; break;
                         case "trashmask": _textures[2] = texture; break;
-                        default: _textures[3] = texture; break;
+                        case "trashingborder": _textures[3] = texture; break;
+                        default: _textures[4] = texture; break;
                     }
                     return Sprite.Create(texture, new Rect(0, 0, w, h), new Vector2(.5f, .5f), 100f);
                 }
@@ -212,7 +217,7 @@ namespace Sirroh.Qol
             Names.Clear(); Slots.Clear(); _id = long.MinValue;
             foreach (Texture2D texture in _textures)
                 if (texture != null) UnityEngine.Object.Destroy(texture);
-            _border = _trash = _trashMask = _reclaimBorder = null;
+            _border = _trash = _trashMask = _reclaimBorder = _recyclePanel = null;
         }
     }
 }
