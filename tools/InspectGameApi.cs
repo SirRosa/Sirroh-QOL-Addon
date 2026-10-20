@@ -10,8 +10,8 @@ using Mono.Cecil.Cil;
 if (args.Length == 2 && args[0] == "--analyze-simulation-radius")
 {
     using var assembly = AssemblyDefinition.ReadAssembly(args[1]);
-    string[] types = { "SimulationDistance", "ZNetScene", "ZDOMan", "ZNet", "ZoneSystem" };
-    foreach (var t in assembly.MainModule.Types.Where(t=>types.Contains(t.Name)))
+    string[] radiusTypes = { "SimulationDistance", "ZNetScene", "ZDOMan", "ZNet", "ZoneSystem" };
+    foreach (var t in assembly.MainModule.Types.Where(t=>radiusTypes.Contains(t.Name)))
     {
         Console.WriteLine("TYPE " + t.FullName);
         foreach (var f in t.Fields.Where(f=>t.Name=="SimulationDistance" ||
