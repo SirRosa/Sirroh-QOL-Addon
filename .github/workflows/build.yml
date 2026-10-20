@@ -65,6 +65,16 @@ jobs:
         shell: bash
         run: |
           dotnet run --project tools/InspectGameApi.csproj -- --verify-swimming "$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed/assembly_valheim.dll"
+      - name: Inspect swim hand equipment behavior
+        shell: bash
+        run: |
+          dotnet run --project tools/InspectGameApi.csproj -- --inspect-swim "$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed/assembly_valheim.dll" > swim-api-report.txt
+          grep -E '^(METHOD|FIELD|CALL SITES)' swim-api-report.txt | head -150 || true
+      - name: Upload swim API audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: Valheim-Swimming-IL-Report
+          path: swim-api-report.txt
       - name: Compile SirrohQolAddon.dll
         run: |
           dotnet build SirrohQolAddon.csproj -c Release --nologo -p:ReferenceDir="$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed" -p:BepDir="$GITHUB_WORKSPACE/.build-refs/bep"
