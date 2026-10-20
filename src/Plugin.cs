@@ -12,7 +12,7 @@ namespace Sirroh.Qol
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "sirro.valheim.qoladdon";
-        public const string Version = "0.1.2";
+        public const string Version = "0.1.3";
         internal static Plugin Instance;
         internal ManualLogSource Log => Logger;
         private Harmony _harmony;
@@ -62,6 +62,7 @@ namespace Sirroh.Qol
             SafeStamina.Install(this);
             FoodFreeze.Install(this);
             GlowingSigns.Install(this);
+            SignMaterials.Install(this);
             SlopeSafety.Install(this);
             Logger.LogInfo("Sirroh QOL Addon " + Version + " initialized (Sirroh Overhaul >=0.22.65 required).");
         }
@@ -89,6 +90,7 @@ namespace Sirroh.Qol
         {
             StopAllCoroutines();
             try { _harmony?.UnpatchSelf(); } catch (Exception e) { Logger.LogWarning(e); }
+            try { SignMaterials.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { GlowingSigns.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             Instance = null;
         }

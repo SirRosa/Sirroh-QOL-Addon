@@ -3,9 +3,9 @@ import json
 
 root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
-assert len(source) == 6, sorted(source)
+assert len(source) == 8, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.2"' in source["Plugin"]
+assert 'Version = "0.1.3"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -24,7 +24,17 @@ assert 'ColorUtility.TryParseHtmlString' in source["GlowingSigns"]
 for key in ("SignEmission", "SignGlowStrength", "SignGlowRadius"):
     assert key in source["Plugin"] and key in source["GlowingSigns"]
 assert "GlowingSigns.RefreshMaterials()" in source["Plugin"]
+assert "SignMaterials.Install(this)" in source["Plugin"]
+assert "SignMaterials.Shutdown()" in source["Plugin"]
+assert "OnCheckPermissionCompleted" in source["SignMaterials"]
+assert "renderer.sharedMaterials" in source["SignMaterials"] or "b.Renderer.sharedMaterials" in source["SignMaterials"]
+assert "Sirroh.Qol.Signs." in source["SignMaterials"]
+assert "EnableKeyword" in source["GlowingSigns"]
+assert "ZDOVars" not in source["SignMaterials"] and "ZDO::Set" not in source["SignMaterials"]
+assert "StringComparison.OrdinalIgnoreCase" in source["SignMaterialMarkup"]
+for code in ("'B'", "'S'", "'G'", "'R'", "'Y'"):
+    assert code in source["SignMaterialMarkup"] and code in source["SignMaterials"]
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.2"
+assert manifest["version_number"] == "0.1.3"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
