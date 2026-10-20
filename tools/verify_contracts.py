@@ -8,12 +8,18 @@ assert "sirro.valheim.pracafizyczna" in source["Plugin"]
 assert 'Version = "0.1.0"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
-assert "GetAllItems().Count" in source["AutoRepair"] and "after <= before" in source["AutoRepair"]
+assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
+assert "bool __result" not in source["AutoRepair"]
+assert "Player.m_localPlayer.GetCurrentCraftingStation() != __instance" in source["AutoRepair"]
 assert "Time.time + 0.25f" in source["SafeStamina"] and "sqrMagnitude" in source["SafeStamina"]
-assert "UpdateFood" in source["FoodFreeze"] and "AfterUpdate" in source["FoodFreeze"]
-assert "return false;" in source["SlopeSafety"]
-assert "new Material(source)" in source["GlowingSigns"]
+assert "UpdateFood" in source["FoodFreeze"] and "TranspileUpdateFood" in source["FoodFreeze"]
+assert "s_statusEffectCampFire" in source["FoodFreeze"]
+assert "Food.m_time" in source["FoodFreeze"] and "OpCodes.Sub" in source["FoodFreeze"]
+assert "return false;" in source["SlopeSafety"] and "ForceMode.Acceleration" in source["SlopeSafety"]
+assert "IsOnGround()" not in source["SlopeSafety"]
+assert "new Material(source)" in source["GlowingSigns"] and "TextMeshPro/Distance Field" in source["GlowingSigns"]
+assert "_OutlineWidth" not in source["GlowingSigns"]
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.0"
+assert manifest["version_number"] == "0.1.1"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")

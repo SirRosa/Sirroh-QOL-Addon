@@ -1,14 +1,14 @@
-# Sirroh QOL Addon — 0.1.0 (test release)
+# Sirroh QOL Addon — 0.1.1 (test release)
 
 One BepInEx DLL with five independently configurable features for **Sirroh Overhaul 0.22.65+** on Valheim 1.0.
 
 | Module | Behavior | Safety |
 | --- | --- | --- |
-| Auto Repair | On valid crafting-station interaction, repairs eligible inventory items using the game's own UI repair methods. | Next-frame GUI check, inventory-count loop limit, durability-progress guard. |
+| Auto Repair | On valid crafting-station interaction, repairs eligible inventory items using the game's own UI repair methods. | Valheim 1.0 false Interact return handled; station check, next-frame GUI, bounded vanilla repairs. |
 | Safe Stamina | Local player spends no stamina when there are no hostile creatures within the configured 25 m radius. | 0.25 s cached enemy scan; squared distances, no NPC or remote-player mutation. |
 | Food Freeze | Food duration is paused while Resting or within range of a lit fireplace. | `UpdateFood` still executes; only temporary food durations are restored. |
-| Glowing Signs | Higher-contrast sign text materials, with a subtle bright edge. | Material clone per font; avoids edits to global font assets or continuous polling. |
-| Slope Safety | Prevents player sliding when grounded on slopes. | Does not touch airborne, attached, riding, swimming or ship movement. |
+| Glowing Signs | Higher-contrast sign text materials, with a subtle bright edge. | Legacy TMP distance-field shader and face color, no forced fake outline; no global font edits. |
+| Slope Safety | Prevents player sliding when grounded on slopes. | Cancels ApplySlide and compensates slope gravity while idle; leaves swimming, riding, ships and NPCs alone. |
 
 Each module can be toggled in `BepInEx/config/sirro.valheim.qoladdon.cfg`. Modules are installed independently: failure to find an optional game method disables only its hook and is logged.
 

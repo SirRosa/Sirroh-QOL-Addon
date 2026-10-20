@@ -12,7 +12,7 @@ namespace Sirroh.Qol
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "sirro.valheim.qoladdon";
-        public const string Version = "0.1.0";
+        public const string Version = "0.1.1";
         internal static Plugin Instance;
         internal ManualLogSource Log => Logger;
         private Harmony _harmony;
@@ -43,7 +43,7 @@ namespace Sirroh.Qol
             FireRadius = Config.Bind("03 Food Freeze", "FireRadius", 12f,
                 new ConfigDescription("Distance to check for burning fireplaces.", new AcceptableValueRange<float>(2f, 35f)));
             GlowSignsEnabled = Config.Bind("04 Glowing Signs", "Enabled", true, "Use a high-contrast, brighter sign text material without changing shared font assets.");
-            NoSlopeSlideEnabled = Config.Bind("05 Slopes", "Enabled", true, "Prevent idle on-ground player sliding without touching falling or ship physics.");
+            NoSlopeSlideEnabled = Config.Bind("05 Slopes", "Enabled", true, "Prevent sliding on steep ground; correct downhill gravity only while idle.");
 
             _harmony = new Harmony(Guid);
             AutoRepair.Install(this);
@@ -54,7 +54,8 @@ namespace Sirroh.Qol
             Logger.LogInfo("Sirroh QOL Addon " + Version + " initialized (Sirroh Overhaul >=0.22.65 required).");
         }
 
-        internal void Patch(string module, MethodBase original, MethodInfo prefix = null, MethodInfo postfix = null, int priority = Priority.Normal)
+        internal void Patch(string module, MethodBase original, MethodInfo prefix = null, MethodInfo postfix = null, int priority = Priority.Normal,
+            MethodInfo transpiler = null, MethodInfo finalizer = null)
         {
             if (original == null)
             {
@@ -65,7 +66,9 @@ namespace Sirroh.Qol
             {
                 HarmonyMethod pre = prefix == null ? null : new HarmonyMethod(prefix) { priority = priority };
                 HarmonyMethod post = postfix == null ? null : new HarmonyMethod(postfix) { priority = priority };
-                _harmony.Patch(original, pre, post);
+                HarmonyMethod trans = transpiler == null ? null : new HarmonyMethod(transpiler);
+                HarmonyMethod fin = finalizer == null ? null : new HarmonyMethod(finalizer);
+                _harmony.Patch(original, pre, post, trans, fin);
             }
             catch (Exception e) { Logger.LogWarning(module + ": hook unavailable: " + e); }
         }

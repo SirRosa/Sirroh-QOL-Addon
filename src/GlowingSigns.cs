@@ -9,13 +9,9 @@ namespace Sirroh.Qol
     internal static class GlowingSigns
     {
         private static Plugin _host;
-        private static readonly Dictionary<int, Material> MaterialCache = new Dictionary<int, Material>();
+        private static readonly Dictionary<int, Material> Materials = new Dictionary<int, Material>();
         private static readonly int FaceColor = Shader.PropertyToID("_FaceColor");
-        private static readonly int OutlineColor = Shader.PropertyToID("_OutlineColor");
-        private static readonly int OutlineWidth = Shader.PropertyToID("_OutlineWidth");
-        private static readonly int GlowColor = Shader.PropertyToID("_GlowColor");
-        private static readonly int GlowOuter = Shader.PropertyToID("_GlowOuter");
-        private static readonly int GlowPower = Shader.PropertyToID("_GlowPower");
+        private static Shader _legacyShader;
         private static bool _warned;
 
         internal static void Install(Plugin host)
@@ -34,45 +30,52 @@ namespace Sirroh.Qol
             {
                 TextMeshProUGUI widget = __instance.m_textWidget;
                 if (widget == null || widget.font == null) return;
+                // Use the original reference's legacy distance-field shader.
+                // The previous QOL version forced outline and glow values onto
+                // every glyph, washing out colors and reducing readability.
+                if (_legacyShader == null) _legacyShader = Shader.Find("TextMeshPro/Distance Field");
+                if (_legacyShader == null)
+                {
+                    Warn("TextMeshPro/Distance Field shader unavailable; leaving existing sign material.");
+                    return;
+                }
                 Material source = widget.font.material;
                 if (source == null) return;
-                int id = source.GetInstanceID();
-                if (!MaterialCache.TryGetValue(id, out Material m) || m == null)
+                int key = source.GetInstanceID();
+                if (!Materials.TryGetValue(key, out Material material) || material == null)
                 {
-                    m = new Material(source)
+                    material = new Material(source)
                     {
-                        name = source.name + " (Sirroh QOL Signs)",
-                        hideFlags = HideFlags.DontSave
+                        name = source.name + " (Sirroh legacy sign text)",
+                        hideFlags = HideFlags.HideAndDontSave,
+                        shader = _legacyShader
                     };
-                    Shader legacy = Shader.Find("TextMeshPro/Distance Field");
-                    if (legacy != null) m.shader = legacy;
-                    // Preserve the font atlas and per-sign vertex color tint.
-                    if (m.HasProperty(FaceColor)) m.SetColor(FaceColor, Color.white);
-                    if (m.HasProperty(OutlineColor)) m.SetColor(OutlineColor, new Color(0f, 0f, 0f, 0.85f));
-                    if (m.HasProperty(OutlineWidth)) m.SetFloat(OutlineWidth, 0.12f);
-                    if (m.HasProperty(GlowColor)) m.SetColor(GlowColor, new Color(1f, 1f, 1f, 0.8f));
-                    if (m.HasProperty(GlowOuter)) m.SetFloat(GlowOuter, 0.15f);
-                    if (m.HasProperty(GlowPower)) m.SetFloat(GlowPower, 0.5f);
-                    MaterialCache[id] = m;
+                    if (material.HasProperty(FaceColor)) material.SetColor(FaceColor, Color.white);
+                    // No custom outline, glow, or emissive tint: legacy shader behavior
+                    // preserves the color supplied by sign text styling.
+                    Materials[key] = material;
                 }
-                if (widget.fontSharedMaterial == m) return;
-                widget.fontSharedMaterial = m;
+                if (widget.fontSharedMaterial == material) return;
+                widget.fontSharedMaterial = material;
                 widget.UpdateMeshPadding();
                 widget.SetMaterialDirty();
             }
-            catch (Exception e)
-            {
-                if (_warned) return;
-                _warned = true;
-                _host.Log.LogWarning("GlowingSigns skipped one sign: " + e);
-            }
+            catch (Exception e) { Warn("Could not apply legacy material: " + e); }
+        }
+
+        private static void Warn(string message)
+        {
+            if (_warned) return;
+            _warned = true;
+            _host.Log.LogWarning("GlowingSigns: " + message);
         }
 
         internal static void Shutdown()
         {
-            foreach (Material m in MaterialCache.Values)
+            foreach (Material m in Materials.Values)
                 if (m != null) UnityEngine.Object.Destroy(m);
-            MaterialCache.Clear();
+            Materials.Clear();
+            _legacyShader = null;
         }
     }
 }
