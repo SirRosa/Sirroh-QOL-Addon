@@ -7,6 +7,24 @@ using Mono.Cecil.Cil;
 
 
 
+
+if (args.Length == 2 && args[0] == "--inventory-qol-api")
+{
+ using var a=AssemblyDefinition.ReadAssembly(args[1]);
+ foreach(var name in new[]{"Inventory","InventoryGui","InventoryGrid","Container","ObjectDB","Recipe","ItemDrop","Player","Humanoid"})
+ {
+  var t=a.MainModule.Types.FirstOrDefault(t=>t.Name==name);
+  if(t==null)continue;
+  Console.WriteLine("TYPE "+name);
+  foreach(var f in t.Fields.Where(f=>f.Name.Contains("inventory")||f.Name.Contains("drag")||f.Name.Contains("nview")||f.Name.Contains("inUse")||f.Name.Contains("recipe")||f.Name.Contains("player")||f.Name.Contains("button")||f.Name.Contains("element")))
+    Console.WriteLine("FIELD "+f.FullName);
+  string[] methods={"AddItem","RemoveItem","CanAddItem","MoveItemToThis","Changed","GetEmptySlots","FindFreeStackSpace","GetAllItems","GetItemAt","GetItem","ContainsItem","Show","Hide","UpdateItemDrag","SetupDragItem","Update","Awake","UpdateCraftingPanel","OnLeftDown","OnRightDown","UpdateGui","GetButton","GetButtonPos","OnDestroy","CheckAccess","IsInUse","SetInUse","Save","Load","GetRecipe","GetItemPrefab","RemoveEquipAction"};
+  foreach(var method in t.Methods.Where(m=>methods.Contains(m.Name)))
+    Console.WriteLine("METHOD "+method.FullName);
+ }
+ return;
+}
+
 if (args.Length == 2 && args[0] == "--analyze-simulation-radius")
 {
     using var assembly = AssemblyDefinition.ReadAssembly(args[1]);
