@@ -8,175 +8,187 @@ using UnityEngine;
 
 namespace Sirroh.Qol
 {
-    /// <summary>
-    /// Visual-only recoloring of the *physical* sign mesh (not the TextMeshPro
-    /// glyph material). The original sign text, prefab and ZDO are never changed.
-    /// </summary>
+    // Runs on clients. Markup is stored as vanilla sign text; no ZDO mutation.
     internal static class SignMaterials
     {
-        private static readonly char[] Variants = { 'B', 'S', 'G', 'R', 'Y' };
-        private static readonly Dictionary<char, Texture2D> Textures = new Dictionary<char, Texture2D>();
-        // Cache one cloned PBR material per original surface and requested variant.
-        private static readonly Dictionary<ulong, Material> MaterialCache = new Dictionary<ulong, Material>();
+        private static readonly Dictionary<char, Texture2D> Textures = new Dictionary<char, Texture2D>(5);
+        private static readonly Dictionary<ulong, Material> Materials = new Dictionary<ulong, Material>(64);
         private static readonly int MainTex = Shader.PropertyToID("_MainTex");
         private static readonly int BaseMap = Shader.PropertyToID("_BaseMap");
-        private static readonly int ColorProp = Shader.PropertyToID("_Color");
-        private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        private static readonly int Metallic = Shader.PropertyToID("_Metallic");
-        private static readonly int Glossiness = Shader.PropertyToID("_Glossiness");
-        private static readonly int Smoothness = Shader.PropertyToID("_Smoothness");
-        private static readonly int EmissionColor = Shader.PropertyToID("_EmissionColor");
+        private static readonly int ColorId = Shader.PropertyToID("_Color");
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int MetallicId = Shader.PropertyToID("_Metallic");
+        private static readonly int GlossinessId = Shader.PropertyToID("_Glossiness");
+        private static readonly int SmoothnessId = Shader.PropertyToID("_Smoothness");
+        private static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
         private static Plugin _host;
-        private static bool _loggedMissing;
-        private static bool _loggedFailure;
+        private static bool _textureErrorLogged;
 
         internal static void Install(Plugin host)
         {
             _host = host;
-            // Awake runs before ZDO permissions and may not yet have the final text.
-            // The permission callback has already written censored/allowed text.
+            // Sign.UpdateText is called when an edit arrives and every 2 s, even when
+            // an existing permission callback was already satisfied.
+            host.Patch("SignMaterials.UpdateText", AccessTools.Method(typeof(Sign), "UpdateText"),
+                postfix: AccessTools.Method(typeof(SignMaterials), nameof(AfterUpdateText)));
             host.Patch("SignMaterials.Permission", AccessTools.Method(typeof(Sign), "OnCheckPermissionCompleted"),
-                postfix: AccessTools.Method(typeof(SignMaterials), nameof(AfterPermission)), priority: Priority.Last);
-            host.Patch("SignMaterials.Awake", AccessTools.Method(typeof(Sign), "Awake"),
-                postfix: AccessTools.Method(typeof(SignMaterials), nameof(AfterAwake)));
+                postfix: AccessTools.Method(typeof(SignMaterials), nameof(AfterPermission)),
+                priority: Priority.Last);
         }
 
-        private static void AfterAwake(Sign __instance)
+        private static void AfterUpdateText(Sign __instance)
         {
-            // Do not parse m_currentText here: access control must run first.
-            // The existing GlowingSigns module owns the text shader.
+            if (_host == null || __instance == null) return;
+            // For an asynchronous access check, the callback below is authoritative.
+            // An already-granted sign may refresh synchronously as well.
+            if (__instance.m_isViewable) Refresh(__instance);
         }
 
         private static void AfterPermission(Sign __instance)
         {
-            if (_host == null || __instance == null || __instance.m_textWidget == null) return;
+            Refresh(__instance);
+        }
+
+        private static void Refresh(Sign sign)
+        {
+            if (_host == null || sign == null || sign.m_textWidget == null) return;
             try
             {
-                TextMeshProUGUI widget = __instance.m_textWidget;
-                // Parse only the text that vanilla has allowed the user to see.
-                // This prevents showing the underlying data to a denied viewer.
-                string raw = widget.text;
-                string visible = SignMaterialMarkup.Strip(raw, out char variant);
-                if (!ReferenceEquals(raw, visible)) widget.text = visible;
-
-                SignMaterialHolder holder = __instance.GetComponent<SignMaterialHolder>();
-                if (!_host.GlowSignsEnabled.Value || variant == '\0')
+                TextMeshProUGUI text = sign.m_textWidget;
+                // Always parse the original persisted text, not a previously
+                // stripped TMP string. Only display permitted content.
+                string displayed = text.text ?? "";
+                SignMaterialHolder holder = sign.GetComponent<SignMaterialHolder>();
+                if (!_host.SignSurfaceEnabled.Value || !sign.m_isViewable)
                 {
                     if (holder != null) holder.Restore();
                     return;
                 }
 
-                if (holder == null) holder = __instance.gameObject.AddComponent<SignMaterialHolder>();
-                holder.Apply(variant);
+                string raw = sign.m_currentText ?? "";
+                string clean = SignMaterialMarkup.Strip(raw, out char variant);
+                if (variant != '\0')
+                {
+                    // Do not bypass Valheim's filtered/censored text branch.
+                    // If vanilla display doesn't correspond to raw, parse what
+                    // vanilla granted instead; never reveal hidden content.
+                    if (displayed != raw && displayed != clean)
+                        clean = SignMaterialMarkup.Strip(displayed, out variant);
+                }
+                if (variant == '\0')
+                {
+                    if (holder != null) holder.Restore();
+                    return;
+                }
+                if (displayed != clean) text.text = clean;
+
+                if (holder == null) holder = sign.gameObject.AddComponent<SignMaterialHolder>();
+                holder.Apply(sign, variant);
             }
             catch (Exception e)
             {
-                if (_loggedFailure) return;
-                _loggedFailure = true;
-                _host.Log.LogWarning("SignMaterials: one sign could not be updated; original material retained: " + e);
+                _host.Log.LogWarning("SignMaterials: sign update failed on " + sign.name + ": " + e);
             }
         }
 
-        internal static Material GetVariant(Material original, char variant)
+        internal static Material VariantMaterial(Material original, char variant)
         {
             if (original == null) return null;
-            Texture2D texture = GetTexture(variant);
-            if (texture == null) return null; // Fail closed rather than replacing with flat color.
-            ulong key = ((ulong)(uint)original.GetInstanceID() << 8) | variant;
-            if (MaterialCache.TryGetValue(key, out Material cached) && cached != null) return cached;
+            Texture2D texture = Texture(variant);
+            if (texture == null) return null;
+            ulong key = ((ulong)(uint)original.GetInstanceID() << 8) | (byte)variant;
+            if (Materials.TryGetValue(key, out Material cached) && cached != null) return cached;
 
-            // Keep Valheim's original game shader, UVs, shading and geometry.
-            // Only this sign's local sharedMaterial reference is replaced.
             Material result = new Material(original)
             {
-                name = original.name + " [Sirroh Sign " + variant + "]",
+                name = "Sirroh/" + variant + "/" + original.name,
                 hideFlags = HideFlags.HideAndDontSave
             };
-            if (result.HasProperty(MainTex)) result.SetTexture(MainTex, texture);
-            if (result.HasProperty(BaseMap)) result.SetTexture(BaseMap, texture);
+
+            // Some Valheim sign surface shaders don't expose an albedo slot.
+            // Rather than silently leaving the original wood texture in place,
+            // switch this *renderer material only* to the standard PBR shader.
             if (!result.HasProperty(MainTex) && !result.HasProperty(BaseMap))
             {
+                Shader pbr = Shader.Find("Standard");
+                if (pbr != null) result.shader = pbr;
+            }
+            bool hasTexture = false;
+            if (result.HasProperty(MainTex)) { result.SetTexture(MainTex, texture); hasTexture = true; }
+            if (result.HasProperty(BaseMap)) { result.SetTexture(BaseMap, texture); hasTexture = true; }
+            if (!hasTexture)
+            {
+                _host.Log.LogWarning("SignMaterials: material " + original.name +
+                    " shader " + original.shader?.name + " has no texture slot; cannot override.");
                 UnityEngine.Object.Destroy(result);
-                if (!_loggedMissing)
-                {
-                    _loggedMissing = true;
-                    _host.Log.LogWarning("SignMaterials: sign shader has no albedo sampler. Original material retained.");
-                }
                 return null;
             }
-            if (result.HasProperty(ColorProp)) result.SetColor(ColorProp, Color.white);
-            if (result.HasProperty(BaseColor)) result.SetColor(BaseColor, Color.white);
-
-            // PBR metallicity and roughness per surface type. Never affect text.
-            float metal, gloss;
-            switch (variant)
-            {
-                case 'B': metal = 0.82f; gloss = 0.48f; break; // black metal
-                case 'S': metal = 0.92f; gloss = 0.67f; break; // brushed silver
-                case 'G': metal = 0.85f; gloss = 0.78f; break; // polished gold
-                case 'R': metal = 0.18f; gloss = 0.65f; break; // red enamel
-                default:  metal = 0.16f; gloss = 0.58f; break; // yellow paint
-            }
-            if (result.HasProperty(Metallic)) result.SetFloat(Metallic, metal);
-            if (result.HasProperty(Glossiness)) result.SetFloat(Glossiness, gloss);
-            if (result.HasProperty(Smoothness)) result.SetFloat(Smoothness, gloss);
-            // Do not inherit a metallic map or wood normal map that would override
-            // the replacement albedo/smoothness in some standard shader variants.
+            if (result.HasProperty(ColorId)) result.SetColor(ColorId, Color.white);
+            if (result.HasProperty(BaseColorId)) result.SetColor(BaseColorId, Color.white);
+            // Ensure the original wood mask/normal/metallic maps don't dominate.
             result.DisableKeyword("_METALLICGLOSSMAP");
             result.DisableKeyword("_NORMALMAP");
             result.DisableKeyword("_EMISSION");
-            if (result.HasProperty(EmissionColor)) result.SetColor(EmissionColor, Color.black);
-            MaterialCache[key] = result;
+            if (result.HasProperty(EmissionId)) result.SetColor(EmissionId, Color.black);
+            float metal, gloss;
+            switch (variant)
+            {
+                case 'B': metal = 0.85f; gloss = 0.51f; break;
+                case 'S': metal = 0.94f; gloss = 0.68f; break;
+                case 'G': metal = 0.89f; gloss = 0.78f; break;
+                case 'R': metal = 0.12f; gloss = 0.68f; break;
+                default:  metal = 0.10f; gloss = 0.60f; break;
+            }
+            if (result.HasProperty(MetallicId)) result.SetFloat(MetallicId, metal);
+            if (result.HasProperty(GlossinessId)) result.SetFloat(GlossinessId, gloss);
+            if (result.HasProperty(SmoothnessId)) result.SetFloat(SmoothnessId, gloss);
+            Materials[key] = result;
             return result;
         }
 
-        private static Texture2D GetTexture(char variant)
+        private static Texture2D Texture(char variant)
         {
-            if (Textures.TryGetValue(variant, out Texture2D cached)) return cached;
-            if (Array.IndexOf(Variants, variant) < 0) return null;
+            if (variant != 'B' && variant != 'S' && variant != 'G' && variant != 'R' && variant != 'Y')
+                return null;
+            if (Textures.TryGetValue(variant, out Texture2D cached) && cached != null) return cached;
             try
             {
-                string name = "Sirroh.Qol.Signs." + variant + ".rgba";
-                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
+                string path = "Sirroh.Qol.Signs." + variant + ".rgba";
+                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(path))
                 {
-                    if (stream == null)
+                    if (stream == null) throw new FileNotFoundException("Embedded texture: " + path);
+                    byte[] bytes = new byte[256 * 256 * 4];
+                    if (stream.Length != bytes.Length)
+                        throw new InvalidDataException(path + " has " + stream.Length + " bytes, expected " + bytes.Length);
+                    int offset = 0;
+                    while (offset < bytes.Length)
                     {
-                        if (!_loggedMissing)
-                        {
-                            _loggedMissing = true;
-                            _host.Log.LogWarning("SignMaterials: embedded surface missing: " + name);
-                        }
-                        return null;
+                        int n = stream.Read(bytes, offset, bytes.Length - offset);
+                        if (n == 0) throw new EndOfStreamException(path);
+                        offset += n;
                     }
-                    byte[] data = new byte[stream.Length];
-                    int count = 0;
-                    while (count < data.Length)
+                    Texture2D tex = new Texture2D(256, 256, TextureFormat.RGBA32, true)
                     {
-                        int n = stream.Read(data, count, data.Length - count);
-                        if (n <= 0) throw new EndOfStreamException(name);
-                        count += n;
-                    }
-                    if (data.Length != 256 * 256 * 4) throw new InvalidDataException("Invalid 256x256 RGBA sign surface: " + name);
-                    Texture2D texture = new Texture2D(256, 256, TextureFormat.RGBA32, true)
-                    {
-                        name = "Sirroh Sign Albedo " + variant,
-                        wrapMode = TextureWrapMode.Repeat,
+                        name = "Sirroh Sign " + variant,
                         filterMode = FilterMode.Bilinear,
+                        wrapMode = TextureWrapMode.Repeat,
                         anisoLevel = 2,
                         hideFlags = HideFlags.HideAndDontSave
                     };
-                    texture.LoadRawTextureData(data);
-                    texture.Apply(true, true); // GPU-backed texture with mipmaps; discard CPU pixels.
-                    Textures[variant] = texture;
-                    return texture;
+                    tex.LoadRawTextureData(bytes);
+                    tex.Apply(true, true);
+                    Textures[variant] = tex;
+                    _host.Log.LogInfo("SignMaterials: decoded embedded RGBA surface " + variant +
+                        " (" + bytes.Length + " bytes).");
+                    return tex;
                 }
             }
             catch (Exception e)
             {
-                if (!_loggedFailure)
+                if (!_textureErrorLogged)
                 {
-                    _loggedFailure = true;
-                    _host.Log.LogWarning("SignMaterials: texture loading failed: " + e);
+                    _textureErrorLogged = true;
+                    _host.Log.LogWarning("SignMaterials: cannot load material textures: " + e);
                 }
                 return null;
             }
@@ -184,18 +196,21 @@ namespace Sirroh.Qol
 
         internal static void Shutdown()
         {
-            // Restore original renderer material references before disposing cached clones.
             foreach (SignMaterialHolder holder in UnityEngine.Object.FindObjectsByType<SignMaterialHolder>(FindObjectsSortMode.None))
                 if (holder != null) holder.Restore();
-            foreach (Material mat in MaterialCache.Values)
+            foreach (Material mat in Materials.Values)
                 if (mat != null) UnityEngine.Object.Destroy(mat);
-            MaterialCache.Clear();
+            Materials.Clear();
             foreach (Texture2D tex in Textures.Values)
                 if (tex != null) UnityEngine.Object.Destroy(tex);
             Textures.Clear();
             _host = null;
-            _loggedMissing = false;
-            _loggedFailure = false;
+            _textureErrorLogged = false;
+        }
+
+        internal static void Log(string message)
+        {
+            _host?.Log.LogInfo("SignMaterials: " + message);
         }
     }
 
@@ -204,51 +219,78 @@ namespace Sirroh.Qol
     {
         private sealed class Binding
         {
-            internal MeshRenderer Renderer;
-            internal Material[] Originals;
+            internal Renderer Renderer;
+            internal Material[] Original;
         }
-
-        private readonly List<Binding> _bindings = new List<Binding>(4);
+        private readonly List<Binding> _bindings = new List<Binding>(8);
         private char _current;
+        private bool _reportedNoMesh;
 
-        internal void Apply(char variant)
+        internal void Apply(Sign sign, char variant)
         {
             if (_current == variant) return;
+            if (_bindings.Count == 0) Capture(sign);
             if (_bindings.Count == 0)
             {
-                // MeshRenderer only; UI sign lettering uses CanvasRenderer/TMP.
-                MeshRenderer[] renderers = GetComponentsInChildren<MeshRenderer>(true);
-                for (int i = 0; i < renderers.Length && i < 16; ++i)
+                if (!_reportedNoMesh)
                 {
-                    MeshRenderer renderer = renderers[i];
-                    if (renderer == null || renderer.GetComponent<TextMeshPro>() != null) continue;
-                    Material[] originals = renderer.sharedMaterials;
-                    if (originals == null || originals.Length == 0) continue;
-                    _bindings.Add(new Binding { Renderer = renderer, Originals = originals });
+                    _reportedNoMesh = true;
+                    SignMaterials.Log("NO MESH on sign " + sign.name +
+                        " (Sign=" + sign.transform.name + "). Retrying on next text update.");
                 }
+                return;
             }
-            bool changed = false;
-            foreach (Binding b in _bindings)
+            int replaced = 0;
+            foreach (Binding binding in _bindings)
             {
-                if (b.Renderer == null) continue;
-                Material[] set = (Material[])b.Originals.Clone();
-                for (int i = 0; i < set.Length; ++i)
+                if (binding.Renderer == null) continue;
+                Material[] newSet = (Material[])binding.Original.Clone();
+                bool any = false;
+                for (int i = 0; i < newSet.Length; i++)
                 {
-                    Material replacement = SignMaterials.GetVariant(set[i], variant);
-                    if (replacement == null) continue;
-                    set[i] = replacement;
-                    changed = true;
+                    Material mat = SignMaterials.VariantMaterial(newSet[i], variant);
+                    if (mat == null) continue;
+                    newSet[i] = mat;
+                    replaced++;
+                    any = true;
                 }
-                if (changed) b.Renderer.sharedMaterials = set;
+                if (any) binding.Renderer.sharedMaterials = newSet;
             }
-            _current = changed ? variant : '\0';
+            _current = replaced == 0 ? '\0' : variant;
+            SignMaterials.Log("sign=" + sign.name + ", variant=" + variant +
+                ", foundRenderers=" + _bindings.Count + ", replacedMaterials=" + replaced +
+                (_current == '\0' ? " [NO REPLACEMENT]" : " [OK]"));
+        }
+
+        private void Capture(Sign sign)
+        {
+            // Sign is frequently a child of the prefab (e.g. interaction/canvas
+            // object). The physical mesh may be a SIBLING, not Sign's descendant.
+            ZNetView networkRoot = sign.GetComponentInParent<ZNetView>();
+            Transform root = networkRoot != null ? networkRoot.transform :
+                (sign.GetComponentInParent<Piece>() != null
+                    ? sign.GetComponentInParent<Piece>().transform : sign.transform);
+            Renderer[] all = root.GetComponentsInChildren<Renderer>(true);
+            foreach (Renderer renderer in all)
+            {
+                if (renderer == null || !(renderer is MeshRenderer || renderer is SkinnedMeshRenderer))
+                    continue;
+                if (renderer.GetComponent<TMP_Text>() != null) continue;
+                Material[] originals = renderer.sharedMaterials;
+                if (originals == null || originals.Length == 0) continue;
+                _bindings.Add(new Binding { Renderer = renderer, Original = originals });
+                if (_bindings.Count == 32) break;
+            }
+            SignMaterials.Log("scanned prefab root=" + root.name +
+                " for Sign=" + sign.name + ", totalRendererComponents=" + all.Length +
+                ", eligibleMeshes=" + _bindings.Count);
         }
 
         internal void Restore()
         {
             if (_current == '\0') return;
             foreach (Binding b in _bindings)
-                if (b.Renderer != null) b.Renderer.sharedMaterials = b.Originals;
+                if (b.Renderer != null) b.Renderer.sharedMaterials = b.Original;
             _current = '\0';
         }
 
