@@ -12,7 +12,7 @@ namespace Sirroh.Qol
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "sirro.valheim.qoladdon";
-        public const string Version = "0.1.1";
+        public const string Version = "0.1.2";
         internal static Plugin Instance;
         internal ManualLogSource Log => Logger;
         private Harmony _harmony;
@@ -26,6 +26,9 @@ namespace Sirroh.Qol
         internal ConfigEntry<bool> FreezeNearFire;
         internal ConfigEntry<float> FireRadius;
         internal ConfigEntry<bool> GlowSignsEnabled;
+        internal ConfigEntry<float> SignEmission;
+        internal ConfigEntry<float> SignGlowStrength;
+        internal ConfigEntry<float> SignGlowRadius;
         internal ConfigEntry<bool> NoSlopeSlideEnabled;
 
         private void Awake()
@@ -42,7 +45,16 @@ namespace Sirroh.Qol
             FreezeNearFire = Config.Bind("03 Food Freeze", "NearLitFire", true, "Freeze when a lit fireplace is nearby.");
             FireRadius = Config.Bind("03 Food Freeze", "FireRadius", 12f,
                 new ConfigDescription("Distance to check for burning fireplaces.", new AcceptableValueRange<float>(2f, 35f)));
-            GlowSignsEnabled = Config.Bind("04 Glowing Signs", "Enabled", true, "Use a high-contrast, brighter sign text material without changing shared font assets.");
+            GlowSignsEnabled = Config.Bind("04 Glowing Signs", "Enabled", true, "Sign-only emissive HDR text with soft, color-matched glow.");
+            SignEmission = Config.Bind("04 Glowing Signs", "EmissionIntensity", 1.75f,
+                new ConfigDescription("HDR brightness of sign glyphs (bloom depends on graphics settings).", new AcceptableValueRange<float>(1f, 3f)));
+            SignGlowStrength = Config.Bind("04 Glowing Signs", "GlowStrength", 0.68f,
+                new ConfigDescription("Soft halo strength, 0 disables the halo.", new AcceptableValueRange<float>(0f, 1f)));
+            SignGlowRadius = Config.Bind("04 Glowing Signs", "GlowRadius", 0.13f,
+                new ConfigDescription("Soft halo spread without a hard outline.", new AcceptableValueRange<float>(0f, 0.35f)));
+            SignEmission.SettingChanged += (_, __) => GlowingSigns.RefreshMaterials();
+            SignGlowStrength.SettingChanged += (_, __) => GlowingSigns.RefreshMaterials();
+            SignGlowRadius.SettingChanged += (_, __) => GlowingSigns.RefreshMaterials();
             NoSlopeSlideEnabled = Config.Bind("05 Slopes", "Enabled", true, "Prevent sliding on steep ground; correct downhill gravity only while idle.");
 
             _harmony = new Harmony(Guid);

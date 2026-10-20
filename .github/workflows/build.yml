@@ -95,6 +95,6 @@ jobs:
       - name: Upload compiled package
         uses: actions/upload-artifact@v4
         with:
-          name: SirrohQOLAddon-0.1.1-Thunderstore
-          path: SirrohQOLAddon-0.1.1-Thunderstore.zip
+          name: SirrohQOLAddon-0.1.2-Thunderstore
+          path: SirrohQOLAddon-0.1.2-Thunderstore.zip
           if-no-files-found: error
