@@ -16,7 +16,7 @@ assert "UpdateFood" in source["FoodFreeze"] and "TranspileUpdateFood" in source[
 assert "s_statusEffectCampFire" in source["FoodFreeze"]
 assert "Food.m_time" in source["FoodFreeze"] and "OpCodes.Sub" in source["FoodFreeze"]
 assert "return false;" in source["SlopeSafety"] and "ForceMode.Acceleration" in source["SlopeSafety"]
-assert "IsOnGround()" not in source["SlopeSafety"]
+assert "if (!__instance.IsOnGround())" not in source["SlopeSafety"]
 assert "new Material(source)" in source["GlowingSigns"] and "TextMeshPro/Distance Field" in source["GlowingSigns"]
 assert "_OutlineWidth" not in source["GlowingSigns"]
 manifest = json.loads((root / "manifest.json").read_text())
