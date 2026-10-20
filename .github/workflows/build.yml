@@ -95,6 +95,16 @@ jobs:
         with:
           name: Player-Despawn-IL-Diagnosis
           path: player-stream-destruction-il.txt
+      - name: Measure simulation region and safe camera displacement
+        shell: bash
+        run: |
+          dotnet run --project tools/InspectGameApi.csproj -- --analyze-simulation-radius "$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed/assembly_valheim.dll" > simulation-radius-il.txt
+          grep -E "^(TYPE|FIELD|METHOD|USES)" simulation-radius-il.txt | head -100 || true
+      - name: Upload simulation distance IL
+        uses: actions/upload-artifact@v4
+        with:
+          name: Simulation-Distance-IL
+          path: simulation-radius-il.txt
       - name: Compile SirrohQolAddon.dll
         run: |
           dotnet build SirrohQolAddon.csproj -c Release --nologo -p:ReferenceDir="$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed" -p:BepDir="$GITHUB_WORKSPACE/.build-refs/bep"

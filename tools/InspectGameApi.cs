@@ -6,6 +6,45 @@ using Mono.Cecil.Cil;
 
 
 
+
+if (args.Length == 2 && args[0] == "--analyze-simulation-radius")
+{
+    using var assembly = AssemblyDefinition.ReadAssembly(args[1]);
+    string[] types = { "SimulationDistance", "ZNetScene", "ZDOMan", "ZNet", "ZoneSystem" };
+    foreach (var t in assembly.MainModule.Types.Where(t=>types.Contains(t.Name)))
+    {
+        Console.WriteLine("TYPE " + t.FullName);
+        foreach (var f in t.Fields.Where(f=>t.Name=="SimulationDistance" ||
+            f.Name.Contains("active", StringComparison.OrdinalIgnoreCase) ||
+            f.Name.Contains("distance", StringComparison.OrdinalIgnoreCase) ||
+            f.Name.Contains("radius", StringComparison.OrdinalIgnoreCase)))
+            Console.WriteLine("FIELD " + f.FullName + (f.HasConstant ? " CONSTANT="+f.Constant : ""));
+        foreach (var m in t.Methods.Where(m => m.Name == "FindSectorObjects" ||
+            m.Name == "GetSyncedSimulationDistance" ||
+            m.Name == "GetSimulationDistance" ||
+            m.Name == "PointInsideActiveArea" ||
+            m.Name == "GetZone" ||
+            m.Name == "CreateDestroyObjects" ||
+            m.Name == "CreateObjects" ||
+            m.Name == "RemoveObjects" ||
+            m.Name == ".ctor" && t.Name=="SimulationDistance" ||
+            m.Name.Contains("SimulationDistance")))
+        {
+            Console.WriteLine("METHOD " + m.FullName);
+            if(m.HasBody) foreach(var i in m.Body.Instructions) Console.WriteLine("  "+i);
+        }
+    }
+    Console.WriteLine("SimulationDistance method usage");
+    foreach(var t in assembly.MainModule.Types.Where(t=> t.Name=="ZNet" || t.Name=="ZDOMan" || t.Name=="ZoneSystem"))
+     foreach(var m in t.Methods.Where(m=>m.HasBody))
+      if(m.Body.Instructions.Any(i=>i.Operand is MethodReference mr && mr.DeclaringType.Name=="SimulationDistance"))
+      {
+       Console.WriteLine("USES " + m.FullName);
+       foreach(var i in m.Body.Instructions) Console.WriteLine("  "+i);
+      }
+    return;
+}
+
 if (args.Length == 2 && args[0] == "--diagnose-player-destruction")
 {
     using var assembly = AssemblyDefinition.ReadAssembly(args[1]);
