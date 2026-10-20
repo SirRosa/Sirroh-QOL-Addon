@@ -3,21 +3,28 @@ using System.Linq;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
-// Also check the final compiled DLL, not just generated files on disk.
-if (args.Length == 2 && args[0] == "--verify-sign-resources")
+if (args.Length == 2 && args[0] == "--verify-swimming")
 {
-    using var dll = AssemblyDefinition.ReadAssembly(args[1]);
-    var resources = dll.MainModule.Resources.ToDictionary(r => r.Name);
-    foreach (char code in "BSGRY")
+    using var target = AssemblyDefinition.ReadAssembly(args[1]);
+    foreach (var (name, method) in new [] {
+      ("Character", "IsSwimming"),
+      ("Humanoid", "EquipItem"),
+      ("Humanoid", "UpdateEquipment")
+    })
     {
-        string key = $"Sirroh.Qol.Signs.{code}.rgba";
-        if (!resources.TryGetValue(key, out var value) ||
-            value is not EmbeddedResource bytes ||
-            bytes.GetResourceData().Length != 256 * 256 * 4)
-            throw new InvalidOperationException("Missing or incomplete embedded texture: " + key);
-        Console.WriteLine(key + ": embedded RGBA 256x256 OK");
+        var type = target.MainModule.Types.FirstOrDefault(t => t.Name == name)
+            ?? throw new InvalidOperationException(name + " missing");
+        var methods = type.Methods.Where(m => m.Name == method).ToArray();
+        if (methods.Length == 0) throw new InvalidOperationException(name + "." + method + " missing");
+        foreach (var entry in methods)
+        {
+            var swimmingCalls = entry.HasBody
+                ? entry.Body.Instructions.Count(i => i.Operand is MethodReference callee && callee.Name == "IsSwimming")
+                : 0;
+            Console.WriteLine($"{name}.{method}: {entry.FullName}; Calls IsSwimming={swimmingCalls}");
+        }
     }
-    Console.WriteLine("PASS: five valid embedded sign surfaces in compiled SirrohQolAddon.dll");
+    Console.WriteLine("PASS: Valheim exposes swimming equipment patch targets");
     return;
 }
 var asm = AssemblyDefinition.ReadAssembly(args[0]);

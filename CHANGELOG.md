@@ -1,19 +1,10 @@
 # Changelog
 
-## 0.1.4 — final sign material implementation trial
-- Hook Sign.UpdateText in addition to access-permission completion and read persisted m_currentText with cached Harmony field references.
-- Resolve the physical surface from the ZNetView/Piece prefab root, not just Sign component's children; supports MeshRenderer and SkinnedMeshRenderer.
-- Use Standard PBR as fallback if the original shader has no albedo texture slot.
-- Add explicit log output for renderer discovery, replaced material slots and embedded texture decoding.
-- Verify all five actual 256x256 embedded resources in the compiled DLL (Mono.Cecil) in CI.
-- Keep the four working gameplay modules and existing Glowing Signs HDR text unchanged.
-
 ## 0.1.3
-- New sign syntax: `<mat=B>`, `<mat=S>`, `<mat=G>`, `<mat=R>`, `<mat=Y>` for black metal, silver, gold, red and yellow.
-- Five unique generated 256x256 PBR albedo textures embedded in the existing QOL DLL; physical sign MeshRenderer materials are replaced with cached clones.
-- Markers stay in vanilla ZDO text for multiplayer but are hidden in the local rendered sign text after normal permission filtering. Removing a marker restores the original materials.
-- Materials use the existing Valheim shader and UVs, with surface-specific metallic and gloss tuning.
-- No alterations to the existing four gameplay modules or GlowingSigns HDR text shader.
+- Reverted all code and resources introduced for `<mat=B/S/G/R/Y>` sign surface variants; 0.1.2 glowing text preserved exactly.
+- Added Wield Equipment While Swimming based on the supplied extracted 1.1.4 reference; scoped `Character.IsSwimming` override for `Humanoid.EquipItem` and `Humanoid.UpdateEquipment`.
+- Added All, WeaponsOnly, ToolsOnly, Custom modes with prefab custom/blacklist, cached and refreshed when settings change.
+- Replaced old StackTrace call-site checks with inexpensive thread-local equipment scope and exception-safe cleanup; swimming physics unchanged.
 
 ## 0.1.2
 - Glowing Signs: explicitly activate GLOW_ON on the legacy TMP distance-field shader; 0.1.1 did not enable its emissive effect.

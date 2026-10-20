@@ -12,7 +12,7 @@ namespace Sirroh.Qol
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "sirro.valheim.qoladdon";
-        public const string Version = "0.1.4";
+        public const string Version = "0.1.3";
         internal static Plugin Instance;
         internal ManualLogSource Log => Logger;
         private Harmony _harmony;
@@ -26,11 +26,14 @@ namespace Sirroh.Qol
         internal ConfigEntry<bool> FreezeNearFire;
         internal ConfigEntry<float> FireRadius;
         internal ConfigEntry<bool> GlowSignsEnabled;
-        internal ConfigEntry<bool> SignSurfaceEnabled;
         internal ConfigEntry<float> SignEmission;
         internal ConfigEntry<float> SignGlowStrength;
         internal ConfigEntry<float> SignGlowRadius;
         internal ConfigEntry<bool> NoSlopeSlideEnabled;
+        internal ConfigEntry<bool> SwimmingEquipmentEnabled;
+        internal ConfigEntry<SwimmingEquipmentMode> SwimmingEquipMode;
+        internal ConfigEntry<string> SwimmingCustomAllowlist;
+        internal ConfigEntry<string> SwimmingBlacklist;
 
         private void Awake()
         {
@@ -47,7 +50,6 @@ namespace Sirroh.Qol
             FireRadius = Config.Bind("03 Food Freeze", "FireRadius", 12f,
                 new ConfigDescription("Distance to check for burning fireplaces.", new AcceptableValueRange<float>(2f, 35f)));
             GlowSignsEnabled = Config.Bind("04 Glowing Signs", "Enabled", true, "Sign-only emissive HDR text with soft, color-matched glow.");
-            SignSurfaceEnabled = Config.Bind("04 Glowing Signs", "MaterialTags", true, "Interpret <mat=B/S/G/R/Y> as custom physical sign materials.");
             SignEmission = Config.Bind("04 Glowing Signs", "EmissionIntensity", 1.75f,
                 new ConfigDescription("HDR brightness of sign glyphs (bloom depends on graphics settings).", new AcceptableValueRange<float>(1f, 3f)));
             SignGlowStrength = Config.Bind("04 Glowing Signs", "GlowStrength", 0.68f,
@@ -59,13 +61,23 @@ namespace Sirroh.Qol
             SignGlowRadius.SettingChanged += (_, __) => GlowingSigns.RefreshMaterials();
             NoSlopeSlideEnabled = Config.Bind("05 Slopes", "Enabled", true, "Prevent sliding on steep ground; correct downhill gravity only while idle.");
 
+            SwimmingEquipmentEnabled = Config.Bind("06 Swimming Equipment", "Enabled", true,
+                "Allow equipped and wielded items while swimming, without changing swimming movement or stamina.");
+            SwimmingEquipMode = Config.Bind("06 Swimming Equipment", "Allow", SwimmingEquipmentMode.All,
+                "All, WeaponsOnly, ToolsOnly or Custom.");
+            SwimmingCustomAllowlist = Config.Bind("06 Swimming Equipment", "CustomAllowlist",
+                "Hammer,AxeBronze,Hoe,PickaxeAntler",
+                "Comma-separated prefab names allowed when Allow=Custom.");
+            SwimmingBlacklist = Config.Bind("06 Swimming Equipment", "Blacklist", "",
+                "Comma-separated prefab names forbidden for swimming. Empty = none.");
+
             _harmony = new Harmony(Guid);
             AutoRepair.Install(this);
             SafeStamina.Install(this);
             FoodFreeze.Install(this);
             GlowingSigns.Install(this);
-            SignMaterials.Install(this);
             SlopeSafety.Install(this);
+            SwimmingEquipment.Install(this);
             Logger.LogInfo("Sirroh QOL Addon " + Version + " initialized (Sirroh Overhaul >=0.22.65 required).");
         }
 
@@ -91,8 +103,8 @@ namespace Sirroh.Qol
         private void OnDestroy()
         {
             StopAllCoroutines();
+            try { SwimmingEquipment.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { _harmony?.UnpatchSelf(); } catch (Exception e) { Logger.LogWarning(e); }
-            try { SignMaterials.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { GlowingSigns.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             Instance = null;
         }

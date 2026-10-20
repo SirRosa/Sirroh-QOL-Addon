@@ -12,9 +12,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="src/**/*.cs" />
-    <EmbeddedResource Include="assets/sign_materials/*.rgba">
-      <LogicalName>Sirroh.Qol.Signs.%(Filename)%(Extension)</LogicalName>
-    </EmbeddedResource>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net48" Version="1.0.3" PrivateAssets="all" />
     <Reference Include="assembly_valheim"><HintPath>$(ReferenceDir)/assembly_valheim.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="assembly_utils"><HintPath>$(ReferenceDir)/assembly_utils.dll</HintPath><Private>false</Private></Reference>
