@@ -33,6 +33,9 @@ namespace Sirroh.Qol
             AccessTools.MethodDelegate<Action<InventoryGui,ItemDrop.ItemData,Inventory,int>>(
                 AccessTools.Method(typeof(InventoryGui),"SetupDragItem",
                     new[]{typeof(ItemDrop.ItemData),typeof(Inventory),typeof(int)}));
+        private static readonly Action<Inventory,bool,bool> ChangedInventory =
+            AccessTools.MethodDelegate<Action<Inventory,bool,bool>>(
+                AccessTools.Method(typeof(Inventory),"Changed",new[]{typeof(bool),typeof(bool)}));
         private static readonly Action<Container> SaveChest =
             AccessTools.MethodDelegate<Action<Container>>(AccessTools.Method(typeof(Container),"Save"));
         private static readonly Func<Container,long,bool> Access =
@@ -50,6 +53,7 @@ namespace Sirroh.Qol
         internal static Vector2i ButtonPosition(InventoryGrid grid,GameObject button) => Position(grid, button);
         internal static void ClearDrag(InventoryGui gui) => SetDrag(gui,null,null,0);
         internal static void Save(Container chest) => SaveChest(chest);
+        internal static void NotifyChanged(Inventory inventory) => ChangedInventory(inventory,false,false);
         internal static bool CheckAccess(Container chest,long id) => Access(chest,id);
     }
 }
