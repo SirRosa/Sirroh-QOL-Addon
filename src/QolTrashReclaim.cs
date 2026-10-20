@@ -110,6 +110,19 @@ namespace Sirroh.Qol
                 frameImage.sprite = QolFavorites.ReclaimBorder;
                 frameImage.raycastTarget = false;
             }
+            // Transparent last-sibling input target prevents nested Armor
+            // prefab UIInputHandler/Button elements from swallowing clicks.
+            GameObject hit = new GameObject("TrashReclaimHitbox", typeof(RectTransform),
+                typeof(Image), typeof(Button));
+            hit.transform.SetParent(root.transform, false);
+            RectTransform hitRect = hit.GetComponent<RectTransform>();
+            hitRect.anchorMin = Vector2.zero;
+            hitRect.anchorMax = Vector2.one;
+            hitRect.offsetMin = hitRect.offsetMax = Vector2.zero;
+            Image hitImage = hit.GetComponent<Image>();
+            hitImage.color = new Color(1f,1f,1f,.01f);
+            hitImage.raycastTarget = true;
+            hit.GetComponent<Button>().onClick.AddListener(OnButtonClicked);
         }
 
         private static bool Dragging(InventoryGui __instance)
