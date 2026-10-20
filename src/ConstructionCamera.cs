@@ -22,6 +22,18 @@ namespace Sirroh.Qol
         private static float _level = 1f;
         private static FieldInfo _constructionField;
         private static bool _reportedMissingSkill;
+        // Valheim 1.0 ZNetScene keeps only the objects around the streaming
+        // reference sector. A 60 m camera displacement is conservatively within
+        // the default near=2 active area for every sector-edge position.
+        // On near=1 simulation settings, 30 m is the corresponding safe cap.
+        private const float FixedCameraLimit = 60f;
+        private const float LowSimulationLimit = 30f;
+        private static int _nearSimulationDistance = 1;
+        private static float _nextSimulationRead;
+        private static bool _reportedSimulationFailure;
+        private static MethodInfo _getSimulationDistance;
+        private static PropertyInfo _nearProperty;
+        private static FieldInfo _nearField;
         private static bool _streamingWarningReported;
         private static bool _referenceChanged;
         private static HarmonyLib.AccessTools.FieldRef<Player,float> _placeDistance;
@@ -37,12 +49,20 @@ namespace Sirroh.Qol
 
         internal static bool Active => _active && ValidOwner();
         internal static Vector3 Position => _position;
-        internal static float CameraRange => 50f + (Mathf.Clamp(_level, 1f, 100f) - 1f) / 99f * 200f;
+        internal static float CameraRange => _nearSimulationDistance <= 1
+            ? LowSimulationLimit : FixedCameraLimit;
         internal static float PickupRange => 10f + (Mathf.Clamp(_level, 1f, 100f) - 1f) / 99f * 90f;
 
         internal static void Install(Plugin host)
         {
             _host = host;
+            _getSimulationDistance = AccessTools.Method(typeof(ZNet), "GetSyncedSimulationDistance", Type.EmptyTypes);
+            if (_getSimulationDistance != null)
+            {
+                Type simType = _getSimulationDistance.ReturnType;
+                _nearProperty = simType.GetProperty("NearSimulationDistance", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                _nearField = AccessTools.Field(simType, "m_nearSimulationDistance");
+            }
             try { _placeDistance = AccessTools.FieldRefAccess<Player, float>("m_maxPlaceDistance"); }
             catch (Exception e) { host.Log.LogWarning("BuildCamera: placement range field unavailable: " + e.Message); }
             Hook("GameCamera.UpdateCamera", typeof(GameCamera), "UpdateCamera", prefix: nameof(CameraPrefix));
@@ -82,6 +102,8 @@ namespace Sirroh.Qol
             }
             if (!_active) return;
             RefreshSkill(player);
+            RefreshSimulationLimit();
+            _position = ClampCamera(_position);
             // Stream around the camera before pickup scans. On a dedicated
             // server remote ZDOs arrive as the server receives our new ref-pos.
             SetCameraReference();
@@ -106,6 +128,7 @@ namespace Sirroh.Qol
             _yaw = angles.y;
             _pitch = Mathf.DeltaAngle(0f, angles.x);
             RefreshSkill(player, true);
+            RefreshSimulationLimit(true);
             _position = ClampCamera(_position);
             SetCameraReference();
             _host.Log.LogInfo("BuildCamera ON; Konstrukcja=" + _level.ToString("0.0") +
@@ -123,6 +146,7 @@ namespace Sirroh.Qol
             _ownerId = 0;
             _rangeDepth = 0;
             _stationRange = 0f;
+            _nextSimulationRead = 0f;
             RemoteCameraPickup.Reset();
         }
 
@@ -130,6 +154,9 @@ namespace Sirroh.Qol
         {
             Stop();
             _host = null;
+            _getSimulationDistance = null;
+            _nearProperty = null;
+            _nearField = null;
         }
 
         private static Vector3 ClampCamera(Vector3 point)
@@ -139,6 +166,45 @@ namespace Sirroh.Qol
             Vector3 delta = point - root;
             float max = CameraRange;
             return delta.sqrMagnitude > max * max ? root + delta.normalized * max : point;
+        }
+
+        private static void RefreshSimulationLimit(bool force = false)
+        {
+            if (!force && Time.time < _nextSimulationRead) return;
+            _nextSimulationRead = Time.time + 2f;
+            int next = 1; // fail closed to the conservative near=1 cap
+            try
+            {
+                ZNet net = ZNet.instance;
+                if (net != null && _getSimulationDistance != null &&
+                    (_nearProperty != null || _nearField != null))
+                {
+                    object distance = _getSimulationDistance.Invoke(net, null);
+                    object val = _nearProperty != null
+                        ? _nearProperty.GetValue(distance, null)
+                        : _nearField.GetValue(distance);
+                    if (val is int near && near >= 1) next = near;
+                }
+                else if (!_reportedSimulationFailure)
+                {
+                    _reportedSimulationFailure = true;
+                    _host?.Log.LogWarning("BuildCamera: simulation distance unavailable; using 30m safety cap.");
+                }
+            }
+            catch (Exception e)
+            {
+                if (!_reportedSimulationFailure)
+                {
+                    _reportedSimulationFailure = true;
+                    _host?.Log.LogWarning("BuildCamera: could not read simulation distance, using 30m safety cap: " + e.Message);
+                }
+            }
+            if (_nearSimulationDistance != next)
+            {
+                _nearSimulationDistance = next;
+                _host?.Log.LogInfo("BuildCamera: network near-distance=" + next +
+                    ", safe fixed camera limit=" + CameraRange.ToString("0") + "m.");
+            }
         }
 
         private static void RefreshSkill(Player player, bool force = false)

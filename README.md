@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.7 (test release)
+# Sirroh QOL Addon — 0.1.8 (test release)
 
 One BepInEx DLL with six configurable features plus skill-scaled Build Camera for **Sirroh Overhaul 0.22.65+** on Valheim 1.0.
 
@@ -46,7 +46,7 @@ If upgrading from 0.1.3, `06 Swimming Equipment` options in old BepInEx configur
 ## Build Camera — Construction-based (v0.1.6)
 - Press **B** to enter or leave free camera mode, without requiring a hammer. Tool/hotbar swaps retain free camera.
 - Keyboard **WASD**/game movement bindings move the camera; mouse looks; jump/crouch raise/lower; run accelerates. Controller analog sticks supported.
-- Camera range from the stationary player: **50 m at Construction 1** to **250 m at Construction 100**, linear interpolation based on `Sirro.PracaFizyczna.AdditionalSkills.Construction`.
+- Camera range from the stationary player: **60 m**, independent of Construction. When Valheim reports near simulation distance=1, it is **30 m** as a safety cap.nstruction 1** to **250 m at Construction 100**, linear interpolation based on `Sirro.PracaFizyczna.AdditionalSkills.Construction`.
 - Auto-pickup of dropped objects near the camera: **10 m at Construction 1** to **100 m at Construction 100**. Uses the game's pickup and ownership APIs, weight, inventory and normal drop eligibility; scans up to 32 loaded drops once per 0.25 seconds.
 - Remote placement and terrain-building updates use a temporary player placement-distance override scoped to the corresponding methods; original value is restored by a Harmony finalizer.
 - Changing to a hammer, hoe, shovel, rake or any other tool with Valheim build/terrain placement ability does **not** force the camera to exit. Tools that don't support vanilla placement do not gain fake recipes or capabilities.
@@ -62,3 +62,8 @@ When B is active, the Valheim `ZNet.SetReferencePosition` used by ZoneSystem (te
 Pickup range is measured **only from the camera location** (10m at Construction level 1, scaling to 100m at level 100), not the player's location. Pickup uses Valheim's standard inventory/weight/ownership logic and active ward access; excludes fish. The scanner processes at most 64 loaded drops every 0.25 seconds, not the entire world's drops. The first successful camera-based pickup is logged once.
 
 **Multiplayer caveat:** Valheim has a single streaming reference per peer. While build camera is active far from the body, chunks near the *player body* may be unloaded locally. Always test this feature on a backup world, particularly at the 250m maximum distance; restored player streaming may need a short load when B is switched off.
+
+## v0.1.8: player despawn diagnosis and safe camera limit
+The Valheim 1.0 IL audit found the literal `Local player destroyed` inside `Player.OnDestroy()`. When the ZNet streaming reference follows a distant camera, `ZNetScene.CreateDestroyObjects` enumerates the camera's active sectors and `ZNetScene.RemoveObjects` destroys no-longer-relevant object instances. A stationary player's ZNetView can be removed too.
+
+Valheim sectors measure 64m. On the standard network simulation distance near=2, `PointInsideActiveArea` uses a maximum Chebyshev distance of 1.5 sectors (96m) from camera sector center, and (non-classic mode) a tighter radial distance of 1.75 sectors (112m). The camera may be 32m away from its sector center, so a 100m camera radius is not guaranteed safe. The addon now imposes a fixed **60m** bound at near>=2 or a **30m** bound at near=1 (the latter can arise from lower server/graphics simulation settings). This is a *movement limit*, not a patch preventing removal of out-of-range world entities. The 10–100m pickup radius still scales with Construction, centered on the camera.

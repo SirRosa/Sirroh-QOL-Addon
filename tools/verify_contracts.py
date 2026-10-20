@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 9, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.7"' in source["Plugin"]
+assert 'Version = "0.1.8"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -48,7 +48,13 @@ assert "KeyCode.B" in source["ConstructionCamera"]
 assert "GetJoyRightStickX" in source["ConstructionCamera"]
 assert "UseHotbarItem" not in source["ConstructionCamera"]
 assert "IsBuildToolEquipped" not in source["ConstructionCamera"]
-assert "50f +" in source["ConstructionCamera"] and "200f" in source["ConstructionCamera"]
+assert "FixedCameraLimit = 60f" in source["ConstructionCamera"]
+assert "LowSimulationLimit = 30f" in source["ConstructionCamera"]
+assert "50f +" not in source["ConstructionCamera"] and "200f" not in source["ConstructionCamera"]
+assert "GetSyncedSimulationDistance" in source["ConstructionCamera"]
+assert "RefreshSimulationLimit(true)" in source["ConstructionCamera"]
+assert "RefreshSimulationLimit();" in source["ConstructionCamera"]
+assert "Mathf.Clamp(_level, 1f, 100f)" in source["ConstructionCamera"]
 assert "10f +" in source["ConstructionCamera"] and "90f" in source["ConstructionCamera"]
 assert "RemoteCameraPickup.Tick" in source["ConstructionCamera"]
 assert 'Hook("Player.LateUpdate"' in source["ConstructionCamera"]
@@ -69,6 +75,6 @@ assert "RequestOwn()" in source["RemoteCameraPickup"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.7"
+assert manifest["version_number"] == "0.1.8"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")

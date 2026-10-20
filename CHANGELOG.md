@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.8
+- Fix critical Build Camera player destruction when camera streaming reference moves too far from the character's original sector. This was ZNetScene.RemoveObjects removing the local player ZNetView after its ZDO dropped outside the synced near area, not a visual rendering optimization.
+- Uncouple camera distance completely from Construction level. Default synced near-area >=2: fixed 60m camera radius. Low near-area 1: fixed 30m radius. Dynamic network-distance read once per 2 seconds, never allow more than 60m.
+- Derive limits from Valheim 1.0 decompiled IL: sectors 64m, near2 point-active-area Chebyshev <=96m and nonclassic spherical <=112m; near1 Chebyshev <=64m. The camera-sector-center can be as much as 32m from the camera, making 100m unsafe at sector boundaries.
+- Keep Construction skill dependent camera-local pickup range 10m at level 1 to 100m at level 100.
+- Leave ZNetScene's normal destruction path untouched. Keep all other QOL modules and free-camera behavior unchanged.
+
 ## 0.1.7
 - Build Camera: streaming interest position follows the free camera, not the stationary player body. Valheim ZoneSystem and ZNetScene now stream terrain and nearby ZDOs around the camera (including on remote multiplayer hosts subject to latency).
 - Hook Player.LateUpdate, which normally resets ZNet reference position to the player body; reassert camera position after that update and after camera movement.
