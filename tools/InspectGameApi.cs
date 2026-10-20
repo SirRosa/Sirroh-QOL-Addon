@@ -20,6 +20,19 @@ if (args.Length == 2 && args[0] == "--inspect-swim")
             if (met.HasBody) foreach (var il in met.Body.Instructions) Console.WriteLine("  " + il);
         }
     }
+    var player = game.MainModule.Types.First(x => x.Name == "Player");
+    var update = player.Methods.First(x => x.Name == "Update" && x.HasBody);
+    Console.WriteLine("\nPLAYER.UPDATE around HideHandItems and ShowHandItems");
+    var instructions = update.Body.Instructions;
+    for (int i=0; i<instructions.Count; i++)
+    {
+        if (instructions[i].Operand is MethodReference mr &&
+             (mr.Name == "HideHandItems" || mr.Name == "ShowHandItems"))
+        {
+            for (int j=Math.Max(0,i-34); j<=Math.Min(instructions.Count-1,i+36); j++)
+                Console.WriteLine("  " + instructions[j]);
+        }
+    }
     Console.WriteLine("\nCALL SITES involving HideHandItems / ShowHandItems / UnequipItem / IsSwimming");
     foreach (var typ in game.MainModule.Types)
         foreach (var met in typ.Methods.Where(m => m.HasBody))
