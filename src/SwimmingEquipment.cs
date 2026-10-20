@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using HarmonyLib;
 
 namespace Sirroh.Qol
@@ -17,6 +18,9 @@ namespace Sirroh.Qol
     internal static class SwimmingEquipment
     {
         private static Plugin _host;
+        // Delegates are cached once from the game's non-public accessors.
+        private static Func<Humanoid, ItemDrop.ItemData> _rightItem;
+        private static Func<Humanoid, ItemDrop.ItemData> _leftItem;
         [ThreadStatic] private static Humanoid _scopedHumanoid;
         private static HashSet<string> _blacklist = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static HashSet<string> _custom = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -24,6 +28,16 @@ namespace Sirroh.Qol
         internal static void Install(Plugin host)
         {
             _host = host;
+            MethodInfo right = AccessTools.Method(typeof(Humanoid), "GetRightItem", Type.EmptyTypes);
+            MethodInfo left = AccessTools.Method(typeof(Humanoid), "GetLeftItem", Type.EmptyTypes);
+            if (right == null || left == null)
+            {
+                host.Log.LogWarning("SwimmingEquipment: Humanoid hand-item accessors missing; module disabled.");
+                _host = null;
+                return;
+            }
+            _rightItem = AccessTools.MethodDelegate<Func<Humanoid, ItemDrop.ItemData>>(right);
+            _leftItem = AccessTools.MethodDelegate<Func<Humanoid, ItemDrop.ItemData>>(left);
             RefreshLists();
             host.SwimmingBlacklist.SettingChanged += (_, __) => RefreshLists();
             host.SwimmingCustomAllowlist.SettingChanged += (_, __) => RefreshLists();
@@ -82,7 +96,7 @@ namespace Sirroh.Qol
 
         private static bool AllowedEquipment(Humanoid player)
         {
-            return AllowedItem(player.GetRightItem()) && AllowedItem(player.GetLeftItem());
+            return AllowedItem(_rightItem(player)) && AllowedItem(_leftItem(player));
         }
 
         private static bool AllowedItem(ItemDrop.ItemData item)
@@ -127,6 +141,8 @@ namespace Sirroh.Qol
         {
             _scopedHumanoid = null;
             _host = null;
+            _rightItem = null;
+            _leftItem = null;
             _blacklist.Clear();
             _custom.Clear();
         }
