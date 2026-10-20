@@ -12,9 +12,15 @@ namespace Sirroh.Qol
         private static readonly FieldInfo InstancesField = AccessTools.Field(typeof(ItemDrop), "s_instances");
         private static float _nextScan;
         private static int _cursor;
-        private static readonly HashSet<ZDOID> Cooldowns = new HashSet<ZDOID>();
         private static readonly Dictionary<ZDOID,float> RetryAfter = new Dictionary<ZDOID,float>();
         private static float _nextWarn;
+        private static readonly FieldInfo WardsField = AccessTools.Field(typeof(PrivateArea), "m_allAreas");
+        private static readonly Func<PrivateArea, bool> WardEnabled =
+            AccessTools.MethodDelegate<Func<PrivateArea, bool>>(AccessTools.Method(typeof(PrivateArea), "IsEnabled"));
+        private static readonly Func<PrivateArea, Vector3, float, bool> WardInside =
+            AccessTools.MethodDelegate<Func<PrivateArea, Vector3, float, bool>>(AccessTools.Method(typeof(PrivateArea), "IsInside"));
+        private static readonly Func<PrivateArea, bool> WardLocalAccess =
+            AccessTools.MethodDelegate<Func<PrivateArea, bool>>(AccessTools.Method(typeof(PrivateArea), "HaveLocalAccess"));
 
         internal static void Tick(Player player, Vector3 camera, float range)
         {
@@ -44,6 +50,7 @@ namespace Sirroh.Qol
                     drop.Load();
                     if (drop.m_itemData == null || drop.m_itemData.m_shared == null ||
                         !drop.m_autoPickup || drop.IsPiece() || drop.InTar()) continue;
+                    if (drop.GetComponent<Fish>() != null || !WardAllows(drop.transform.position)) continue;
                     if (!inventory.CanAddItem(drop.m_itemData, -1)) continue;
                     if (inventory.GetTotalWeight() + drop.m_itemData.GetWeight(-1) > player.GetMaxCarryWeight()) continue;
                     drop.RequestOwn();
@@ -67,11 +74,25 @@ namespace Sirroh.Qol
             }
         }
 
+        private static bool WardAllows(Vector3 target)
+        {
+            if (!(WardsField?.GetValue(null) is List<PrivateArea> wards)) return false;
+            foreach (PrivateArea ward in wards)
+            {
+                if (ward == null) continue;
+                Piece piece = ward.GetComponent<Piece>();
+                if (piece != null && piece.IsPlacedByPlayer() &&
+                    WardEnabled(ward) && WardInside(ward, target, 0f) &&
+                    !WardLocalAccess(ward))
+                    return false;
+            }
+            return true;
+        }
+
         internal static void Reset()
         {
             _nextScan = 0f;
             _cursor = 0;
-            Cooldowns.Clear();
             RetryAfter.Clear();
         }
     }
