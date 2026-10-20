@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
@@ -20,6 +21,7 @@ namespace Sirroh.Qol
         private static readonly List<Container> Nearby = new List<Container>(128);
         private static readonly HashSet<string> Existing = new HashSet<string>(StringComparer.Ordinal);
         private static readonly List<ItemDrop.ItemData> PlayerItems = new List<ItemDrop.ItemData>(64);
+        private static readonly FieldInfo ContainerOpenEffects = AccessTools.Field(typeof(Container), "m_openEffects");
         private static bool _busy;
         private static float _nextKey;
 
@@ -57,6 +59,7 @@ namespace Sirroh.Qol
             if (_busy) yield break;
             _busy = true;
             int moved = 0, touched = 0, skipped = 0;
+            Container firstModified = null;
             try
             {
                 Inventory src = player.GetInventory();
@@ -117,6 +120,7 @@ namespace Sirroh.Qol
                     {
                         moved += movedChest;
                         touched++;
+                        if (firstModified == null) firstModified = chest;
                         // Save only once after the complete batch. The vanilla
                         // inventoryChanged callback also synchronizes ownership.
                         QolGameAccess.Save(chest);
@@ -126,7 +130,7 @@ namespace Sirroh.Qol
                 player.Message(MessageHud.MessageType.TopLeft,
                     (quick ? "Quickstack: " : "Restock: ") + moved +
                     " szt. / " + touched + " skrzyń" + (skipped > 0 ? " (pominięto: " + skipped + ")" : ""));
-                if (moved > 0) PlayFeedback(player);
+                if (moved > 0) PlayFeedback(firstModified, player);
             }
             finally
             {
@@ -215,11 +219,42 @@ namespace Sirroh.Qol
             return true;
         }
 
-        private static void PlayFeedback(Player player)
+        private static void PlayFeedback(Container source, Player player)
         {
-            // Feedback is throttled to one game message per hotkey press;
-            // never play one effect per chest (can be hundreds in big bases).
-            // Vanilla item transfer handles any configured UI sound effects.
+            // Reuse the game's native container opening SFX/VFX, as in the
+            // referenced mod, but only ONCE after a successful hotkey batch.
+            // Never open and close hundreds of remote chests just for effects.
+            if (source == null || player == null || ContainerOpenEffects == null) return;
+            try
+            {
+                object effects = ContainerOpenEffects.GetValue(source);
+                if (effects == null) return;
+                MethodInfo create = null;
+                foreach (MethodInfo method in effects.GetType().GetMethods(
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                {
+                    if (method.Name != "Create") continue;
+                    ParameterInfo[] args = method.GetParameters();
+                    if (args.Length >= 2 && args[0].ParameterType == typeof(Vector3) &&
+                        args[1].ParameterType == typeof(Quaternion)) { create = method; break; }
+                }
+                if (create == null) return;
+                ParameterInfo[] parameters = create.GetParameters();
+                object[] values = new object[parameters.Length];
+                values[0] = player.transform.position;
+                values[1] = Quaternion.identity;
+                for (int i=2; i<values.Length; i++)
+                {
+                    Type type = parameters[i].ParameterType;
+                    values[i] = parameters[i].HasDefaultValue ? parameters[i].DefaultValue :
+                        type.IsValueType ? Activator.CreateInstance(type) : null;
+                }
+                create.Invoke(effects, values);
+            }
+            catch (Exception e)
+            {
+                _host?.Log.LogDebug("QOL transfer effect unavailable: " + e.Message);
+            }
         }
 
         internal static void Shutdown()
