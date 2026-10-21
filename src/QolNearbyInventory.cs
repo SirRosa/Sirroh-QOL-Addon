@@ -39,8 +39,7 @@ namespace Sirroh.Qol
             _host = host;
             host.Patch("QOL.Containers.Awake", AccessTools.Method(typeof(Container), "Awake"),
                 postfix: AccessTools.Method(typeof(QolNearbyInventory), nameof(OnContainerAwake)));
-            host.Patch("QOL.Containers.Destroy", AccessTools.Method(typeof(Container), "OnDestroy"),
-                prefix: AccessTools.Method(typeof(QolNearbyInventory), nameof(OnContainerDestroy)));
+
         }
 
         private static long Key(int x, int z) => ((long)x << 32) | (uint)z;
@@ -56,9 +55,14 @@ namespace Sirroh.Qol
             if (!Cells.TryGetValue(sector,out List<Container> list))
                 Cells[sector] = list = new List<Container>(8);
             list.Add(__instance);
+            // Container itself has no OnDestroy in Valheim 1.0.
+            // A tiny tracker removes the bucket entry when its GO unloads.
+            QolChestTracker tracker = __instance.GetComponent<QolChestTracker>();
+            if (tracker == null) tracker = __instance.gameObject.AddComponent<QolChestTracker>();
+            tracker.Bind(__instance);
         }
 
-        private static void OnContainerDestroy(Container __instance)
+        internal static void OnContainerDestroy(Container __instance)
         {
             if (__instance == null || !Locations.TryGetValue(__instance,out long key)) return;
             Locations.Remove(__instance);
@@ -438,6 +442,16 @@ namespace Sirroh.Qol
             _host = null; _busy = false;
             Locations.Clear(); Cells.Clear(); Nearby.Clear();
             Wanted.Clear(); PlayerItems.Clear(); ClearContentIndex(); ListPool.Clear();
+        }
+    }
+    internal sealed class QolChestTracker : MonoBehaviour
+    {
+        private Container _container;
+        internal void Bind(Container container) { _container = container; }
+        private void OnDestroy()
+        {
+            if (_container != null) QolNearbyInventory.OnContainerDestroy(_container);
+            _container = null;
         }
     }
 }
