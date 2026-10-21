@@ -96,6 +96,8 @@ namespace Sirroh.Qol
             _overlayRect = _overlay.GetComponent<RectTransform>();
             Stretch(_overlayRect);
             _overlay.transform.SetAsLastSibling();
+            // The HUD must never capture clicks outside the icon rects.
+            // This overlay has no Image or other raycast-capable component.
 
             // Wood appears from behind the left edge of the inventory, with
             // separate red-button and three-button sections as on the mockup.
@@ -172,9 +174,10 @@ namespace Sirroh.Qol
             GameObject icon = new GameObject("Icon",typeof(RectTransform),typeof(Image));
             icon.transform.SetParent(go.transform,false);
             RectTransform iconRt = icon.GetComponent<RectTransform>();
-            iconRt.anchorMin = iconRt.anchorMax = new Vector2(.5f,.5f);
-            iconRt.sizeDelta = new Vector2(64f,64f);
-            iconRt.anchoredPosition = Vector2.zero;
+            iconRt.anchorMin = Vector2.zero;
+            iconRt.anchorMax = Vector2.one;
+            iconRt.offsetMin = Vector2.zero;
+            iconRt.offsetMax = Vector2.zero;
             Image display = icon.GetComponent<Image>();
             display.sprite = sprite;
             display.preserveAspect = true;
