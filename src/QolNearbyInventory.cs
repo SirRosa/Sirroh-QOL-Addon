@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using HarmonyLib;
 using TMPro;
@@ -17,9 +18,17 @@ namespace Sirroh.Qol
     {
         private const float RangeSq = 100f * 100f;
         private static Plugin _host;
-        private static readonly HashSet<Container> Known = new HashSet<Container>();
-        private static readonly List<Container> Nearby = new List<Container>(128);
-        private static readonly HashSet<string> Existing = new HashSet<string>(StringComparer.Ordinal);
+        private const float CellSize = 32f;
+        private const double FrameBudgetMs = 2.0; // strict co-operative time slice
+        private static readonly Dictionary<long,List<Container>> Cells = new Dictionary<long,List<Container>>();
+        private static readonly Dictionary<Container,long> Locations = new Dictionary<Container,long>();
+        private static readonly List<Container> Nearby = new List<Container>(160);
+        private static readonly HashSet<string> Wanted = new HashSet<string>(StringComparer.Ordinal);
+        private static readonly Dictionary<string,List<ItemDrop.ItemData>> Contents =
+            new Dictionary<string,List<ItemDrop.ItemData>>(StringComparer.Ordinal);
+        private static readonly Stack<List<ItemDrop.ItemData>> ListPool =
+            new Stack<List<ItemDrop.ItemData>>(32);
+        private static readonly Stopwatch Budget = new Stopwatch();
         private static readonly List<ItemDrop.ItemData> PlayerItems = new List<ItemDrop.ItemData>(64);
         private static readonly FieldInfo ContainerOpenEffects = AccessTools.Field(typeof(Container), "m_openEffects");
         private static bool _busy;
@@ -30,11 +39,74 @@ namespace Sirroh.Qol
             _host = host;
             host.Patch("QOL.Containers.Awake", AccessTools.Method(typeof(Container), "Awake"),
                 postfix: AccessTools.Method(typeof(QolNearbyInventory), nameof(OnContainerAwake)));
+            host.Patch("QOL.Containers.Destroy", AccessTools.Method(typeof(Container), "OnDestroy"),
+                prefix: AccessTools.Method(typeof(QolNearbyInventory), nameof(OnContainerDestroy)));
         }
+
+        private static long Key(int x, int z) => ((long)x << 32) | (uint)z;
+
+        private static long CellOf(Vector3 position) =>
+            Key(Mathf.FloorToInt(position.x / CellSize), Mathf.FloorToInt(position.z / CellSize));
 
         private static void OnContainerAwake(Container __instance)
         {
-            if (__instance != null) Known.Add(__instance);
+            if (__instance == null || Locations.ContainsKey(__instance)) return;
+            long sector = CellOf(__instance.transform.position);
+            Locations.Add(__instance,sector);
+            if (!Cells.TryGetValue(sector,out List<Container> list))
+                Cells[sector] = list = new List<Container>(8);
+            list.Add(__instance);
+        }
+
+        private static void OnContainerDestroy(Container __instance)
+        {
+            if (__instance == null || !Locations.TryGetValue(__instance,out long key)) return;
+            Locations.Remove(__instance);
+            if (Cells.TryGetValue(key,out List<Container> list))
+            {
+                list.Remove(__instance);
+                if (list.Count == 0) Cells.Remove(key);
+            }
+        }
+
+        private static void ClearContentIndex()
+        {
+            foreach (List<ItemDrop.ItemData> list in Contents.Values)
+            {
+                list.Clear();
+                if (ListPool.Count < 128) ListPool.Push(list);
+            }
+            Contents.Clear();
+        }
+
+        private static void IndexInventory(Inventory inv)
+        {
+            ClearContentIndex();
+            foreach (ItemDrop.ItemData item in inv.GetAllItems())
+            {
+                if (item == null || item.m_shared == null || item.m_stack < 1) continue;
+                string name = item.m_shared.m_name;
+                if (!Wanted.Contains(name)) continue;
+                if (!Contents.TryGetValue(name,out List<ItemDrop.ItemData> list))
+                {
+                    list = ListPool.Count > 0 ? ListPool.Pop() : new List<ItemDrop.ItemData>(4);
+                    Contents[name] = list;
+                }
+                list.Add(item);
+            }
+        }
+
+        private static bool Relevant(Inventory inv, bool quick)
+        {
+            IndexInventory(inv);
+            if (Contents.Count == 0) return false;
+            if (quick) return true;
+            foreach (ItemDrop.ItemData item in PlayerItems)
+                if (item != null && item.m_shared != null &&
+                    item.m_stack < item.m_shared.m_maxStackSize &&
+                    Contents.ContainsKey(item.m_shared.m_name))
+                    return true;
+            return false;
         }
 
         internal static void Tick()
@@ -124,29 +196,30 @@ namespace Sirroh.Qol
             _busy = true;
             int moved = 0, touched = 0, skipped = 0;
             Container firstModified = null;
+            Budget.Restart();
             try
             {
-                Inventory src = player.GetInventory();
+                Inventory src = player == null ? null : player.GetInventory();
                 if (src == null) yield break;
                 GetContainers(player);
                 if (Nearby.Count == 0)
                 {
-                    player.Message(MessageHud.MessageType.TopLeft, "Brak dostępnych skrzyń w zasięgu 100 m.");
+                    player.Message(MessageHud.MessageType.TopLeft,
+                        "Brak wczytanych skrzyń w zasięgu 100 m.");
                     yield break;
                 }
-                // Inventory item enumeration happens once per request.
+
                 PlayerItems.Clear();
+                Wanted.Clear();
                 foreach (ItemDrop.ItemData item in src.GetAllItems())
                 {
                     if (item == null || item.m_shared == null) continue;
-                    // Quickstack never removes from hotbar. Restock only
-                    // ADDS to existing hotbar stacks and does not remove them.
                     if (quick && item.m_gridPos.y == 0) continue;
-                    if (item.m_equipped) continue;
-                    if (item.m_shared.m_maxStackSize <= 1) continue;
-                    if (quick && QolFavorites.IsFavorite(item, src)) continue;
+                    if (item.m_equipped || item.m_shared.m_maxStackSize <= 1) continue;
+                    if (quick && QolFavorites.IsFavorite(item,src)) continue;
                     if (!quick && item.m_stack >= item.m_shared.m_maxStackSize) continue;
                     PlayerItems.Add(item);
+                    Wanted.Add(item.m_shared.m_name);
                 }
                 if (PlayerItems.Count == 0)
                 {
@@ -156,116 +229,144 @@ namespace Sirroh.Qol
                     yield break;
                 }
 
-                // Operate on at most 128 loaded containers per press; each
-                // container is acquired once and processed as a single batch.
-                for (int ci = 0; ci < Nearby.Count && ci < 128; ++ci)
+                // Co-operative work: no arbitrary 128-chest truncation, no
+                // full-scene iteration; each frame gets at most 2ms of work.
+                for (int ci=0;ci<Nearby.Count;ci++)
                 {
                     Container chest = Nearby[ci];
-                    if (chest == null || !CanAccess(chest, player)) { skipped++; continue; }
+                    if (player == null || player != Player.m_localPlayer) yield break;
+                    if (chest == null || !CanAccess(chest,player)) { skipped++; continue; }
+                    Inventory dest = QolGameAccess.Inventory(chest);
+                    if (dest == null || dest == src) continue;
+
+                    // MAJOR optimization: scan the chest BEFORE ClaimOwnership.
+                    // If none of its contents are needed, no RPC/ZDO changes.
+                    if (!Relevant(dest,quick)) continue;
+                    if (Budget.Elapsed.TotalMilliseconds >= FrameBudgetMs)
+                    {
+                        yield return null;
+                        Budget.Restart();
+                    }
                     ZNetView view = QolGameAccess.View(chest);
+                    if (view == null) continue;
                     if (!view.IsOwner())
                     {
                         view.ClaimOwnership();
-                        float deadline = Time.realtimeSinceStartup + .9f;
+                        float deadline = Time.realtimeSinceStartup+.9f;
                         while (view != null && !view.IsOwner() && Time.realtimeSinceStartup < deadline)
                             yield return null;
+                        Budget.Restart();
                         if (view == null || !view.IsOwner()) { skipped++; continue; }
                     }
-                    if (!CanAccess(chest, player)) { skipped++; continue; }
-                    Inventory inventory = QolGameAccess.Inventory(chest);
-                    if (inventory == null || inventory == src) continue;
-                    Existing.Clear();
-                    foreach (ItemDrop.ItemData item in inventory.GetAllItems())
-                        if (item?.m_shared != null) Existing.Add(item.m_shared.m_name);
-                    if (Existing.Count == 0) continue;
+                    if (!CanAccess(chest,player)) { skipped++; continue; }
+                    // Ownership handshake may have changed the chest inventory.
+                    if (!Relevant(dest,quick)) continue;
 
-                    int movedChest = quick ? QuickStack(src, inventory) : Restock(src, inventory);
+                    int movedChest = 0;
+                    for (int pi=0;pi<PlayerItems.Count;pi++)
+                    {
+                        ItemDrop.ItemData own = PlayerItems[pi];
+                        if (own == null || own.m_shared == null || !src.ContainsItem(own)) continue;
+                        if (!Contents.TryGetValue(own.m_shared.m_name,
+                            out List<ItemDrop.ItemData> matches)) continue;
+                        if (quick)
+                        {
+                            if (QolFavorites.IsFavorite(own,src)) continue;
+                            int before = own.m_stack;
+                            dest.MoveItemToThis(src,own);
+                            movedChest += src.ContainsItem(own)
+                                ? Math.Max(0,before-own.m_stack) : before;
+                        }
+                        else
+                        {
+                            if (own.m_customData != null && own.m_customData.Count > 0) continue;
+                            int missing = own.m_shared.m_maxStackSize - own.m_stack;
+                            if (missing <= 0) continue;
+                            for (int idx=matches.Count-1; idx>=0 && missing>0;idx--)
+                            {
+                                ItemDrop.ItemData item = matches[idx];
+                                if (item == null || item.m_stack <= 0 ||
+                                    item.m_quality != own.m_quality ||
+                                    item.m_customData != null && item.m_customData.Count>0) continue;
+                                int count = Math.Min(missing,item.m_stack);
+                                if (count > 0 && src.MoveItemToThis(dest,item,count,
+                                    own.m_gridPos.x,own.m_gridPos.y))
+                                {
+                                    movedChest += count;
+                                    missing -= count;
+                                }
+                                // Budget includes all match checks, even failed transfers.
+                                if (Budget.Elapsed.TotalMilliseconds >= FrameBudgetMs)
+                                {
+                                    yield return null;
+                                    Budget.Restart();
+                                }
+                            }
+                        }
+                        if (Budget.Elapsed.TotalMilliseconds >= FrameBudgetMs)
+                        {
+                            yield return null;
+                            Budget.Restart();
+                        }
+                    }
+
                     if (movedChest > 0)
                     {
                         moved += movedChest;
                         touched++;
                         if (firstModified == null) firstModified = chest;
-                        // Save only once after the complete batch. The vanilla
-                        // inventoryChanged callback also synchronizes ownership.
-                        QolGameAccess.Save(chest);
+                        QolGameAccess.Save(chest); // once per changed chest
                     }
-                    if (ci % 4 == 3) yield return null; // keep the game responsive
+                    ClearContentIndex();
+                    if (Budget.Elapsed.TotalMilliseconds >= FrameBudgetMs)
+                    {
+                        yield return null;
+                        Budget.Restart();
+                    }
                 }
                 player.Message(MessageHud.MessageType.TopLeft,
                     (quick ? "Quickstack: " : "Restock: ") + moved +
-                    " szt. / " + touched + " skrzyń" + (skipped > 0 ? " (pominięto: " + skipped + ")" : ""));
-                if (moved > 0) PlayFeedback(firstModified, player);
+                    " szt. / " + touched + " skrzyń" +
+                    (skipped>0 ? " (pominięto: "+skipped+")" : ""));
+                if (moved>0) PlayFeedback(firstModified,player);
             }
             finally
             {
+                Budget.Stop();
                 _busy = false;
                 Nearby.Clear();
-                Existing.Clear();
+                Wanted.Clear();
                 PlayerItems.Clear();
+                ClearContentIndex();
             }
-        }
-
-        private static int QuickStack(Inventory playerInv, Inventory chestInv)
-        {
-            int amount = 0;
-            foreach (ItemDrop.ItemData item in PlayerItems)
-            {
-                if (item == null || !playerInv.ContainsItem(item)) continue;
-                if (!Existing.Contains(item.m_shared.m_name)) continue;
-                if (QolFavorites.IsFavorite(item, playerInv)) continue;
-                int before = item.m_stack;
-                chestInv.MoveItemToThis(playerInv, item);
-                int taken = playerInv.ContainsItem(item) ? Math.Max(0, before - item.m_stack) : before;
-                amount += taken;
-            }
-            return amount;
-        }
-
-        private static int Restock(Inventory playerInv, Inventory chestInv)
-        {
-            int moved = 0;
-            foreach (ItemDrop.ItemData playerItem in PlayerItems)
-            {
-                if (playerItem == null || !playerInv.ContainsItem(playerItem)) continue;
-                int missing = playerItem.m_shared.m_maxStackSize - playerItem.m_stack;
-                if (missing <= 0) continue;
-                if (!Existing.Contains(playerItem.m_shared.m_name)) continue;
-                // Never restock custom-data items into plain stacks.
-                if (playerItem.m_customData != null && playerItem.m_customData.Count > 0) continue;
-                List<ItemDrop.ItemData> chestItems = chestInv.GetAllItems();
-                for (int i = chestItems.Count - 1; i >= 0 && missing > 0; i--)
-                {
-                    ItemDrop.ItemData item = chestItems[i];
-                    if (item == null || item.m_shared == null || item.m_shared.m_name != playerItem.m_shared.m_name ||
-                        item.m_quality != playerItem.m_quality ||
-                        item.m_customData != null && item.m_customData.Count > 0) continue;
-                    int count = Math.Min(missing, item.m_stack);
-                    if (count <= 0) continue;
-                    if (playerInv.MoveItemToThis(chestInv, item, count,
-                        playerItem.m_gridPos.x, playerItem.m_gridPos.y))
-                    {
-                        moved += count;
-                        missing -= count;
-                    }
-                }
-            }
-            return moved;
         }
 
         private static void GetContainers(Player player)
         {
             Nearby.Clear();
             Vector3 origin = player.transform.position;
-            Known.RemoveWhere(c => c == null);
-            foreach (Container chest in Known)
-            {
-                if (chest == null || QolGameAccess.View(chest) == null || QolGameAccess.Inventory(chest) == null ||
-                    !QolGameAccess.View(chest).IsValid() || !chest.gameObject.activeInHierarchy) continue;
-                if ((chest.transform.position - origin).sqrMagnitude > RangeSq) continue;
-                Nearby.Add(chest);
-            }
-            Nearby.Sort((a,b) => (a.transform.position-origin).sqrMagnitude
-                .CompareTo((b.transform.position-origin).sqrMagnitude));
+            int cx = Mathf.FloorToInt(origin.x / CellSize);
+            int cz = Mathf.FloorToInt(origin.z / CellSize);
+            // 100m reach + a 32m cell edge: at most 9x9 occupied
+            // hash buckets instead of walking millions of distant containers.
+            for(int dx=-4; dx<=4; dx++)
+                for(int dz=-4; dz<=4; dz++)
+                {
+                    if (!Cells.TryGetValue(Key(cx+dx,cz+dz),
+                        out List<Container> bucket)) continue;
+                    for(int i=bucket.Count-1;i>=0;i--)
+                    {
+                        Container chest = bucket[i];
+                        if (chest == null) { bucket.RemoveAt(i); continue; }
+                        if (!chest.gameObject.activeInHierarchy) continue;
+                        // If a movable chest shifted buckets, update its index
+                        // on the next hotkey operation instead of scanning every frame.
+                        if ((chest.transform.position-origin).sqrMagnitude <= RangeSq)
+                            Nearby.Add(chest);
+                    }
+                }
+            // No Nearby.Sort: the bucket iteration already gives a bounded
+            // spatial walk, and sorting >1000 transforms was a long frame.
         }
 
         private static bool CanAccess(Container chest, Player player)
@@ -327,7 +428,8 @@ namespace Sirroh.Qol
         internal static void Shutdown()
         {
             _host = null; _busy = false;
-            Known.Clear(); Nearby.Clear(); Existing.Clear(); PlayerItems.Clear();
+            Locations.Clear(); Cells.Clear(); Nearby.Clear();
+            Wanted.Clear(); PlayerItems.Clear(); ClearContentIndex(); ListPool.Clear();
         }
     }
 }
