@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.11
+- Fix missing icon toolbar: Harmony InventoryGui.Show postfix parameter was incorrectly named 'gui' instead of required '__instance'.
+- Guard InventoryGui.UpdateRecipeList against malformed item recipes and missing UI data; keep ObjectDB unchanged and log which recipe is broken instead of breaking inventory opening.
+- Preserve all icon assets, 2ms quickstack frame budget and gameplay modules.
+
 ## 0.1.10
 - Replace 380px wide labeled buttons with 26px icon-only mini-controls arranged under the vanilla Weight anchor like QuickStackStore. Favorite has a toggle state, Store All only appears for an opened container. Reclaim receives its own compact 38px drop target. Add mouseover tooltips.
 - Incorporate all five user-supplied icons: Sort, Favorite, QuickStack, Restock at 32x32, Recycle at 48x48 (source 64x64); embed PNG-derived RGBA resources in the single DLL. Retain the five previously embedded compatibility icons/resources.

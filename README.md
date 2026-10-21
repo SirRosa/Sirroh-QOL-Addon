@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.10 (test release)
+# Sirroh QOL Addon — 0.1.11 (test release)
 
 One BepInEx DLL with six configurable features plus skill-scaled Build Camera for **Sirroh Overhaul 0.22.65+** on Valheim 1.0.
 
@@ -89,3 +89,9 @@ Valheim sectors measure 64m. On the standard network simulation distance near=2,
 - Chest selection uses a **32m spatial hash**, limiting searches to neighboring loaded cells within 100m. No per-command global chest scan or sorting. Chests are indexed by item type before expensive ownership RPCs; only relevant chests may be claimed.
 - Restock uses pooled item lists by type, built once per chest (instead of repeated chest inventory scans per player item). Transfers are spread across frames with a **2ms cooperative budget**. Every loaded eligible chest within 100m is processed; no arbitrary 128-chest cutoff. Multiplayer permissions and wards remain checked before mutation.
 - In-game checking remains necessary for performance and UI collision with the user's other modded overlays. Track console log/errors, a dense chest room, multiplayer and small/large inventory interactions.
+
+## v0.1.11 Inventory UI startup fixes
+- Corrected the QolStoreSort Show Harmony postfix injection parameter from `gui` to `__instance`. The incorrect parameter prevented Harmony from installing the icon toolbar hook.
+- Added guarded recipe-list validation before vanilla `InventoryGui.UpdateRecipeList`: skips only invalid/null recipe entries **for display only**; does not modify global ObjectDB crafting recipe sources, crafting recipes, or ingredients. Repairs missing temporary UI lists. If a third-party inventory replacement lacks the recipe list root, it emits an explicit warning and skips only that list update rather than crashing the entire inventory UI.
+- Five custom supplied icons remain embedded at 32x32 (Recycle 48x48). Chest operations, skill scaling and earlier gameplay modules remain unchanged.
+- Diagnose in BepInEx LogOutput.log via `RecipeListSafety:` if crafting panel still does not appear; UI layout from other mods is resolved only when compatible root exists.

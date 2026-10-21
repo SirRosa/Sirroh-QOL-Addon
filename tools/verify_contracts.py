@@ -3,9 +3,9 @@ import json
 
 root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
-assert len(source) == 14, sorted(source)
+assert len(source) == 15, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.10"' in source["Plugin"]
+assert 'Version = "0.1.11"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -72,6 +72,13 @@ assert "GetStationBuildRange" in source["ConstructionCamera"]
 assert "UpdatePlacementGhost" in source["ConstructionCamera"]
 assert "GetTotalWeight()" in source["RemoteCameraPickup"]
 assert "RequestOwn()" in source["RemoteCameraPickup"]
+assert "QolRecipeListSafety.Install(this)" in source["Plugin"]
+assert "UpdateRecipeList" in source["QolRecipeListSafety"]
+assert "ref List<Recipe> __0" in source["QolRecipeListSafety"]
+assert "Activator.CreateInstance" in source["QolRecipeListSafety"]
+assert "QolRecipeListSafety" not in source["ConstructionCamera"]
+assert "private static void OnShow(InventoryGui __instance)" in source["QolStoreSort"]
+assert "InventoryGui gui = __instance;" in source["QolStoreSort"]
 assert "QolFavorites.Install(this)" in source["Plugin"]
 assert "QolNearbyInventory.Install(this)" in source["Plugin"]
 assert "QolTrashReclaim.Install(this)" in source["Plugin"]
@@ -111,6 +118,6 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.10"
+assert manifest["version_number"] == "0.1.11"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
