@@ -120,6 +120,16 @@ jobs:
           python3 -m pip install --user --quiet Pillow
           python3 tools/generate_qol_assets.py
           test $(find .build-refs/assets -name '*.rgba' | wc -l) -eq 10
+      - name: Inspect recipe UI null references
+        shell: bash
+        run: |
+          dotnet run --project tools/InspectGameApi.csproj -- --diagnose-inventory-recipe-null "$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed/assembly_valheim.dll" > inventory-recipe-il.txt
+          grep -E "^(FIELD|METHOD)" inventory-recipe-il.txt | head -85 || true
+      - name: Upload recipe IL report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Inventory-Recipe-IL-Report
+          path: inventory-recipe-il.txt
       - name: Compile SirrohQolAddon.dll
         run: |
           dotnet build SirrohQolAddon.csproj -c Release --nologo -p:ReferenceDir="$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed" -p:BepDir="$GITHUB_WORKSPACE/.build-refs/bep"
