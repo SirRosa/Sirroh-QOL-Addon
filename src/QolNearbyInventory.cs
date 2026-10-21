@@ -233,6 +233,14 @@ namespace Sirroh.Qol
                 // full-scene iteration; each frame gets at most 2ms of work.
                 for (int ci=0;ci<Nearby.Count;ci++)
                 {
+                    // Yield even when a chest has no relevant items.
+                    // Thousands of unrelated chests must never run in a
+                    // single frame simply because no ownership RPC occurred.
+                    if (Budget.Elapsed.TotalMilliseconds >= FrameBudgetMs)
+                    {
+                        yield return null;
+                        Budget.Restart();
+                    }
                     Container chest = Nearby[ci];
                     if (player == null || player != Player.m_localPlayer) yield break;
                     if (chest == null || !CanAccess(chest,player)) { skipped++; continue; }
