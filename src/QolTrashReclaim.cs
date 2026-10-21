@@ -54,12 +54,14 @@ namespace Sirroh.Qol
         private static void EnsureUI(InventoryGui gui)
         {
             if (gui == null || gui.m_player == null) return;
-            if (_buttonObject != null) { Align(gui); return; }
+            RectTransform overlay = QolStoreSort.OverlayParent(gui);
+            if (overlay == null) return;
+            if (_buttonObject != null) { _buttonObject.SetActive(true); Align(gui); return; }
             _buttonObject = new GameObject("SirrohTrashReclaim",typeof(RectTransform),
                 typeof(Image),typeof(Button));
-            _buttonObject.transform.SetParent(gui.m_player,false);
+            _buttonObject.transform.SetParent(overlay,false);
             _buttonRect = _buttonObject.GetComponent<RectTransform>();
-            _buttonRect.sizeDelta = new Vector2(38f,38f);
+            _buttonRect.sizeDelta = new Vector2(64f,64f);
             _buttonRect.anchorMin = _buttonRect.anchorMax = new Vector2(.5f,.5f);
             Image hit = _buttonObject.GetComponent<Image>();
             hit.color = new Color(1f,1f,1f,.012f);
@@ -71,7 +73,10 @@ namespace Sirroh.Qol
             icon.transform.SetParent(_buttonRect,false);
             RectTransform iconRt = icon.GetComponent<RectTransform>();
             iconRt.anchorMin = iconRt.anchorMax = new Vector2(.5f,.5f);
-            iconRt.sizeDelta = new Vector2(31f,31f);
+            iconRt.anchorMin=Vector2.zero;
+            iconRt.anchorMax=Vector2.one;
+            iconRt.offsetMin=Vector2.zero;
+            iconRt.offsetMax=Vector2.zero;
             iconRt.anchoredPosition = Vector2.zero;
             Image image = icon.GetComponent<Image>();
             image.sprite = QolFavorites.RecycleIcon;
@@ -84,20 +89,8 @@ namespace Sirroh.Qol
 
         internal static void Align(InventoryGui gui)
         {
-            if (gui == null || gui.m_player == null || _buttonRect == null) return;
-            Transform weight = gui.m_player.Find("Weight");
-            RectTransform anchor = weight as RectTransform;
-            if (anchor != null)
-            {
-                _buttonRect.anchorMin = anchor.anchorMin;
-                _buttonRect.anchorMax = anchor.anchorMax;
-                _buttonRect.localPosition = QolStoreSort.RecyclePosition(gui);
-            }
-            else
-            {
-                _buttonRect.anchorMin = _buttonRect.anchorMax = new Vector2(0f,0f);
-                _buttonRect.anchoredPosition = new Vector2(180f,34f);
-            }
+            if (gui == null || _buttonRect == null) return;
+            QolStoreSort.PositionRecycle(_buttonRect);
         }
 
         private static bool Dragging(InventoryGui __instance)
