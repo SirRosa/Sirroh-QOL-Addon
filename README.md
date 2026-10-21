@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.11 (test release)
+# Sirroh QOL Addon — 0.1.12 (test release)
 
 One BepInEx DLL with six configurable features plus skill-scaled Build Camera for **Sirroh Overhaul 0.22.65+** on Valheim 1.0.
 
@@ -95,3 +95,15 @@ Valheim sectors measure 64m. On the standard network simulation distance near=2,
 - Added guarded recipe-list validation before vanilla `InventoryGui.UpdateRecipeList`: skips only invalid/null recipe entries **for display only**; does not modify global ObjectDB crafting recipe sources, crafting recipes, or ingredients. Repairs missing temporary UI lists. If a third-party inventory replacement lacks the recipe list root, it emits an explicit warning and skips only that list update rather than crashing the entire inventory UI.
 - Five custom supplied icons remain embedded at 32x32 (Recycle 48x48). Chest operations, skill scaling and earlier gameplay modules remain unchanged.
 - Diagnose in BepInEx LogOutput.log via `RecipeListSafety:` if crafting panel still does not appear; UI layout from other mods is resolved only when compatible root exists.
+
+## v0.1.12 — exact 1920×1080 inventory placement and new sprites
+
+The user's reference screen is 1920×1080 with marker centers:
+- Recycle (red): (645, 186.5), 64×64
+- Sort (yellow): (645, 326.5), 64×64
+- Quickstack (blue): (645, 384.5), 64×64
+- Restock (green): (645, 442.5), 64×64
+
+Coordinates are converted to screen/Canvas space, scaling uniformly to other screen resolutions. The original Favorite control stays anchored under Weight; Store All stays with it. The supplied wood panel sprite is used as a 9-sliced decorative background, behind the player inventory panel (two separate protruding tabs for separated red vs three lower icons), with no raycasts. UI objects are cached and hidden when inventory closes.
+
+The five new icon files and wood were imported losslessly from the exact user upload, preserving their original transparent 64×64 pixels. A SHA-256 digest check enforces image integrity before build; embedded raw Unity RGBA textures are vertically corrected. This removes the older rescaled 32px/48px icon artwork from active UI. Existing Quickstack/Restock logic and previous QOL modules were not modified.

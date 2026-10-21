@@ -12,7 +12,7 @@ namespace Sirroh.Qol
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "sirro.valheim.qoladdon";
-        public const string Version = "0.1.11";
+        public const string Version = "0.1.12";
         internal static Plugin Instance;
         internal ManualLogSource Log => Logger;
         private Harmony _harmony;
@@ -96,6 +96,7 @@ namespace Sirroh.Qol
         {
             ConstructionCamera.Tick();
             QolNearbyInventory.Tick();
+            QolStoreSort.Tick();
         }
 
         private void OnDestroy()

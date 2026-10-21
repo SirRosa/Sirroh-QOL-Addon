@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.12
+- Position 64×64 Recycle, Sort, Quickstack, Restock at the exact supplied 1920×1080 reference image coordinates. Uniform resolution-aware scaling; preserve Favorite near Weight and Store All unchanged.
+- Place supplied wooden 64×64 textured backplate as 9-sliced UI geometry behind inventory, projecting from the edge in red-button and three-button groupings. Cache and hide overlays with inventory.
+- Replace previous icons with all five new 64×64 user PNGs, preserving lossless RGBA, including texture row-order correction for Unity. Store artwork with verified full-atlas SHA-256.
+- Keep all Q/R network ownership and batch-performance fixes unchanged.
+
 ## 0.1.11
 - Fix missing icon toolbar: Harmony InventoryGui.Show postfix parameter was incorrectly named 'gui' instead of required '__instance'.
 - Guard InventoryGui.UpdateRecipeList against malformed item recipes and missing UI data; keep ObjectDB unchanged and log which recipe is broken instead of breaking inventory opening.
