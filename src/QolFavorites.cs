@@ -19,7 +19,16 @@ namespace Sirroh.Qol
         private static Sprite _trashMask;
         private static Sprite _reclaimBorder;
         private static Sprite _recyclePanel;
-        private static Texture2D[] _textures = new Texture2D[5];
+        private static readonly Texture2D[] _textures = new Texture2D[10];
+        private static Sprite _sortIcon, _favoriteIcon, _quickIcon, _restockIcon, _recycleIcon;
+        private static bool _favoriteMode;
+        internal static Sprite SortIcon => _sortIcon;
+        internal static Sprite FavoriteIcon => _favoriteIcon;
+        internal static Sprite QuickIcon => _quickIcon;
+        internal static Sprite RestockIcon => _restockIcon;
+        internal static Sprite RecycleIcon => _recycleIcon;
+        internal static bool FavoriteMode => _favoriteMode;
+        internal static void ToggleFavoriteMode() { _favoriteMode = !_favoriteMode; }
 
         internal static Sprite TrashIcon => _trash;
         internal static Sprite TrashMask => _trashMask;
@@ -39,9 +48,14 @@ namespace Sirroh.Qol
             _trashMask = ReadSprite("trashmask");
             _reclaimBorder = ReadSprite("trashingborder");
             _recyclePanel = ReadSprite("RecyclingPanel");
+            _sortIcon = ReadSprite("ui_sort");
+            _favoriteIcon = ReadSprite("ui_favorite");
+            _quickIcon = ReadSprite("ui_quickstack");
+            _restockIcon = ReadSprite("ui_restock");
+            _recycleIcon = ReadSprite("ui_recycle");
         }
 
-        private static bool Modifier => Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
+        private static bool Modifier => _favoriteMode || Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
         private static bool Valid(InventoryGrid grid)
         {
             return grid != null && InventoryGui.instance != null &&
@@ -206,7 +220,12 @@ namespace Sirroh.Qol
                         case "trash": _textures[1] = texture; break;
                         case "trashmask": _textures[2] = texture; break;
                         case "trashingborder": _textures[3] = texture; break;
-                        default: _textures[4] = texture; break;
+                        case "RecyclingPanel": _textures[4] = texture; break;
+                        case "ui_sort": _textures[5] = texture; break;
+                        case "ui_favorite": _textures[6] = texture; break;
+                        case "ui_quickstack": _textures[7] = texture; break;
+                        case "ui_restock": _textures[8] = texture; break;
+                        case "ui_recycle": _textures[9] = texture; break;
                     }
                     return Sprite.Create(texture, new Rect(0, 0, w, h), new Vector2(.5f, .5f), 100f);
                 }
@@ -220,10 +239,11 @@ namespace Sirroh.Qol
 
         internal static void Shutdown()
         {
-            Names.Clear(); Slots.Clear(); _id = long.MinValue;
+            Names.Clear(); Slots.Clear(); _id = long.MinValue; _favoriteMode = false;
             foreach (Texture2D texture in _textures)
                 if (texture != null) UnityEngine.Object.Destroy(texture);
             _border = _trash = _trashMask = _reclaimBorder = _recyclePanel = null;
+            _sortIcon = _favoriteIcon = _quickIcon = _restockIcon = _recycleIcon = null;
         }
     }
 }
