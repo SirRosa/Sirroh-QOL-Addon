@@ -17,6 +17,8 @@ namespace Sirroh.Qol
     {
         private static readonly FieldInfo RecipeRoot =
             AccessTools.Field(typeof(InventoryGui), "m_recipeListRoot");
+        private static readonly FieldInfo RecipeElement =
+            AccessTools.Field(typeof(InventoryGui), "m_recipeElementPrefab");
         private static readonly FieldInfo Available =
             AccessTools.Field(typeof(InventoryGui), "m_availableRecipes");
         private static readonly FieldInfo TempItems =
@@ -31,7 +33,26 @@ namespace Sirroh.Qol
                     typeof(InventoryGui), "UpdateRecipeList",
                     new [] { typeof(List<Recipe>) }),
                 prefix: AccessTools.Method(typeof(QolRecipeListSafety), nameof(Validate)),
+                finalizer: AccessTools.Method(typeof(QolRecipeListSafety), nameof(Report)),
                 priority: Priority.First);
+        }
+
+        private static Exception Report(Exception __exception, InventoryGui __instance)
+        {
+            if (__exception == null) return null;
+            string details = "n/a";
+            try
+            {
+                details = "recipeRoot=" + (RecipeRoot?.GetValue(__instance) != null) +
+                    ", elementPrefab=" + (RecipeElement?.GetValue(__instance) != null) +
+                    ", availableList=" + (Available?.GetValue(__instance) != null) +
+                    ", tempItemList=" + (TempItems?.GetValue(__instance) != null);
+            }
+            catch { /* preserve the original exception */ }
+            Plugin.Instance?.Log.LogWarning(
+                "RecipeListSafety: vanilla recipe refresh still failed (" +
+                details + "): " + __exception);
+            return __exception; // never silently hide a still-unidentified bug
         }
 
         private static bool Validate(InventoryGui __instance, ref List<Recipe> __0)
@@ -42,13 +63,14 @@ namespace Sirroh.Qol
                 // On a normal initialized InventoryGui these are already set.
                 // A UI replacement mod may clear references during rebuilding.
                 if (RecipeRoot == null || Available == null || TempItems == null ||
-                    RecipeRoot.GetValue(__instance) == null)
+                    RecipeRoot.GetValue(__instance) == null ||
+                    RecipeElement == null || RecipeElement.GetValue(__instance) == null)
                 {
                     if (!_reportedLayout)
                     {
                         _reportedLayout = true;
                         Plugin.Instance?.Log.LogWarning(
-                            "RecipeListSafety: crafting list root is not initialized. " +
+                            "RecipeListSafety: crafting recipe UI root or element prefab is missing. " +
                             "Skipping recipe refresh rather than breaking the whole inventory window. " +
                             "Check for conflicting inventory UI replacement mods.");
                     }
