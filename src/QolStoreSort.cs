@@ -26,8 +26,9 @@ namespace Sirroh.Qol
                 postfix: AccessTools.Method(typeof(QolStoreSort), nameof(OnShow)));
         }
 
-        private static void OnShow(InventoryGui gui)
+        private static void OnShow(InventoryGui __instance)
         {
+            InventoryGui gui = __instance;
             if (gui == null || gui.m_player == null) return;
             if (_panel == null)
             {
