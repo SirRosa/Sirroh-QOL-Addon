@@ -53,76 +53,51 @@ namespace Sirroh.Qol
 
         private static void EnsureUI(InventoryGui gui)
         {
-            if (_buttonObject != null) return;
-            if (gui.m_player == null) return;
-            Transform template = gui.m_player.Find("Armor");
-            GameObject root;
-            if (template != null)
+            if (gui == null || gui.m_player == null) return;
+            if (_buttonObject != null) { Align(gui); return; }
+            _buttonObject = new GameObject("SirrohTrashReclaim",typeof(RectTransform),
+                typeof(Image),typeof(Button));
+            _buttonObject.transform.SetParent(gui.m_player,false);
+            _buttonRect = _buttonObject.GetComponent<RectTransform>();
+            _buttonRect.sizeDelta = new Vector2(38f,38f);
+            _buttonRect.anchorMin = _buttonRect.anchorMax = new Vector2(.5f,.5f);
+            Image hit = _buttonObject.GetComponent<Image>();
+            hit.color = new Color(1f,1f,1f,.012f);
+            hit.raycastTarget = true;
+            Button button = _buttonObject.GetComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            button.onClick.AddListener(OnButtonClicked);
+            GameObject icon = new GameObject("RecycleIcon",typeof(RectTransform),typeof(Image));
+            icon.transform.SetParent(_buttonRect,false);
+            RectTransform iconRt = icon.GetComponent<RectTransform>();
+            iconRt.anchorMin = iconRt.anchorMax = new Vector2(.5f,.5f);
+            iconRt.sizeDelta = new Vector2(31f,31f);
+            iconRt.anchoredPosition = Vector2.zero;
+            Image image = icon.GetComponent<Image>();
+            image.sprite = QolFavorites.RecycleIcon;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            QolIconHover hover = _buttonObject.AddComponent<QolIconHover>();
+            hover.Caption = "Trash / Reclaim";
+            Align(gui);
+        }
+
+        internal static void Align(InventoryGui gui)
+        {
+            if (gui == null || gui.m_player == null || _buttonRect == null) return;
+            Transform weight = gui.m_player.Find("Weight");
+            RectTransform anchor = weight as RectTransform;
+            if (anchor != null)
             {
-                root = UnityEngine.Object.Instantiate(template.gameObject, gui.m_player);
-                root.name = "SirrohTrashReclaim";
-                RectTransform rt = root.GetComponent<RectTransform>();
-                if (rt != null) rt.anchoredPosition += new Vector2(0f, -85f);
-                foreach (Button old in root.GetComponentsInChildren<Button>(true))
-                    old.onClick.RemoveAllListeners();
-                Transform caption = root.transform.Find("ac_text");
-                if (caption != null)
-                {
-                    TMP_Text t = caption.GetComponent<TMP_Text>();
-                    if (t != null) t.text = "Trash / Reclaim";
-                }
-                Transform icon = root.transform.Find("armor_icon");
-                if (icon != null)
-                {
-                    Image image = icon.GetComponent<Image>();
-                    if (image != null && QolFavorites.TrashIcon != null) image.sprite = QolFavorites.TrashIcon;
-                }
+                _buttonRect.anchorMin = anchor.anchorMin;
+                _buttonRect.anchorMax = anchor.anchorMax;
+                _buttonRect.localPosition = QolStoreSort.RecyclePosition(gui);
             }
             else
             {
-                root = new GameObject("SirrohTrashReclaim", typeof(RectTransform), typeof(Image));
-                root.transform.SetParent(gui.m_player, false);
-                RectTransform rt = root.GetComponent<RectTransform>();
-                rt.sizeDelta = new Vector2(90f, 72f);
-                rt.anchoredPosition = new Vector2(105f, -75f);
-                Image image = root.GetComponent<Image>();
-                if (QolFavorites.TrashIcon != null) image.sprite = QolFavorites.TrashIcon;
+                _buttonRect.anchorMin = _buttonRect.anchorMax = new Vector2(0f,0f);
+                _buttonRect.anchoredPosition = new Vector2(180f,34f);
             }
-            _buttonObject = root;
-            _buttonRect = root.GetComponent<RectTransform>();
-            // Put the actual input surface on the same object as the recycled
-            // icon. This doesn't depend on the original chest UI layout.
-            Button button = root.GetComponent<Button>() ?? root.AddComponent<Button>();
-            button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(OnButtonClicked);
-            Image baseImage = root.GetComponent<Image>() ?? root.AddComponent<Image>();
-            baseImage.raycastTarget = true;
-            if (QolFavorites.TrashMask != null) baseImage.sprite = QolFavorites.TrashMask;
-            if (QolFavorites.ReclaimBorder != null)
-            {
-                GameObject frame = new GameObject("ReclaimBorder", typeof(RectTransform), typeof(Image));
-                frame.transform.SetParent(root.transform, false);
-                RectTransform borderRect = frame.GetComponent<RectTransform>();
-                borderRect.anchorMin = Vector2.zero;
-                borderRect.anchorMax = Vector2.one;
-                borderRect.offsetMin = borderRect.offsetMax = Vector2.zero;
-                Image frameImage = frame.GetComponent<Image>();
-                frameImage.sprite = QolFavorites.ReclaimBorder;
-                frameImage.raycastTarget = false;
-            }
-            // Transparent last-sibling input target prevents nested Armor
-            // prefab UIInputHandler/Button elements from swallowing clicks.
-            GameObject hit = new GameObject("TrashReclaimHitbox", typeof(RectTransform),
-                typeof(Image), typeof(Button));
-            hit.transform.SetParent(root.transform, false);
-            RectTransform hitRect = hit.GetComponent<RectTransform>();
-            hitRect.anchorMin = Vector2.zero;
-            hitRect.anchorMax = Vector2.one;
-            hitRect.offsetMin = hitRect.offsetMax = Vector2.zero;
-            Image hitImage = hit.GetComponent<Image>();
-            hitImage.color = new Color(1f,1f,1f,.01f);
-            hitImage.raycastTarget = true;
-            hit.GetComponent<Button>().onClick.AddListener(OnButtonClicked);
         }
 
         private static bool Dragging(InventoryGui __instance)
