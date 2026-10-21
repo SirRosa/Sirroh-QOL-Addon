@@ -9,6 +9,26 @@ using Mono.Cecil.Cil;
 
 
 
+
+if (args.Length == 2 && args[0] == "--diagnose-inventory-recipe-null")
+{
+    using var a = AssemblyDefinition.ReadAssembly(args[1]);
+    var t=a.MainModule.Types.First(x=>x.Name=="InventoryGui");
+    string[] targets={"Show","SetupCrafting","UpdateCraftingPanel","UpdateRecipeList","Awake","Update"};
+    foreach(var f in t.Fields.Where(f=>f.Name.Contains("recipe",StringComparison.OrdinalIgnoreCase)
+       || f.Name.Contains("craft",StringComparison.OrdinalIgnoreCase)
+       || f.Name.Contains("player",StringComparison.OrdinalIgnoreCase)))
+        Console.WriteLine("FIELD "+f.FullName);
+    foreach(var m in t.Methods.Where(x=>targets.Contains(x.Name)))
+    {
+        Console.WriteLine("METHOD "+m.FullName);
+        if(!m.HasBody)continue;
+        foreach(var il in m.Body.Instructions)
+            Console.WriteLine("  "+il);
+    }
+    return;
+}
+
 if (args.Length == 2 && args[0] == "--verify-qol-assets")
 {
     using var a = AssemblyDefinition.ReadAssembly(args[1]);
