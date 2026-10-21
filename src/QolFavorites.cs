@@ -19,7 +19,7 @@ namespace Sirroh.Qol
         private static Sprite _trashMask;
         private static Sprite _reclaimBorder;
         private static Sprite _recyclePanel;
-        private static readonly Texture2D[] _textures = new Texture2D[10];
+        private static readonly Texture2D[] _textures = new Texture2D[11];
         private static Sprite _sortIcon, _favoriteIcon, _quickIcon, _restockIcon, _recycleIcon;
         private static bool _favoriteMode;
         internal static Sprite SortIcon => _sortIcon;
@@ -27,6 +27,8 @@ namespace Sirroh.Qol
         internal static Sprite QuickIcon => _quickIcon;
         internal static Sprite RestockIcon => _restockIcon;
         internal static Sprite RecycleIcon => _recycleIcon;
+        private static Sprite _woodPanel;
+        internal static Sprite WoodPanel => _woodPanel;
         internal static bool FavoriteMode => _favoriteMode;
         internal static void ToggleFavoriteMode() { _favoriteMode = !_favoriteMode; }
 
@@ -53,6 +55,7 @@ namespace Sirroh.Qol
             _quickIcon = ReadSprite("ui_quickstack");
             _restockIcon = ReadSprite("ui_restock");
             _recycleIcon = ReadSprite("ui_recycle");
+            _woodPanel = ReadSprite("ui_wood");
         }
 
         private static bool Modifier => _favoriteMode || Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
@@ -226,7 +229,14 @@ namespace Sirroh.Qol
                         case "ui_quickstack": _textures[7] = texture; break;
                         case "ui_restock": _textures[8] = texture; break;
                         case "ui_recycle": _textures[9] = texture; break;
+                        case "ui_wood": _textures[10] = texture; break;
                     }
+                    // 9-sliced backplate keeps the user's carved wood corners
+                    // sharp even when the underlying plank is stretched.
+                    if (name == "ui_wood")
+                        return Sprite.Create(texture, new Rect(0,0,w,h),
+                            new Vector2(.5f,.5f), 100f, 0,
+                            SpriteMeshType.FullRect, new Vector4(10f,10f,10f,10f));
                     return Sprite.Create(texture, new Rect(0, 0, w, h), new Vector2(.5f, .5f), 100f);
                 }
             }
@@ -243,7 +253,7 @@ namespace Sirroh.Qol
             foreach (Texture2D texture in _textures)
                 if (texture != null) UnityEngine.Object.Destroy(texture);
             _border = _trash = _trashMask = _reclaimBorder = _recyclePanel = null;
-            _sortIcon = _favoriteIcon = _quickIcon = _restockIcon = _recycleIcon = null;
+            _sortIcon = _favoriteIcon = _quickIcon = _restockIcon = _recycleIcon = _woodPanel = null;
         }
     }
 }
