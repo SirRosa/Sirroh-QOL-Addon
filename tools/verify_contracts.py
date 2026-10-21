@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 14, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.9"' in source["Plugin"]
+assert 'Version = "0.1.10"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -81,6 +81,17 @@ assert "QolFavorites.IsFavoriteSlot" in source["QolStoreSort"]
 assert "StartStoreCurrent" in source["QolNearbyInventory"]
 assert "m_gridPos.y == 0" in source["QolStoreSort"]
 assert "QolNearbyInventory.Tick();" in source["Plugin"]
+assert "FrameBudgetMs = 2.0" in source["QolNearbyInventory"]
+assert "private static long CellOf" in source["QolNearbyInventory"]
+assert "ClearContentIndex" in source["QolNearbyInventory"]
+assert "IndexInventory" in source["QolNearbyInventory"]
+assert "if (!Relevant(dest,quick)) continue;" in source["QolNearbyInventory"]
+assert "Nearby.Sort" not in source["QolNearbyInventory"].replace("// No Nearby.Sort:","")
+assert "ReadSprite(\"ui_sort\")" in source["QolFavorites"]
+assert "ReadSprite(\"ui_recycle\")" in source["QolFavorites"]
+assert "QolFavorites.SortIcon" in source["QolStoreSort"]
+assert "QolFavorites.RecycleIcon" in source["QolTrashReclaim"]
+assert "QolIconHover" in source["QolStoreSort"]
 assert "KeyCode.Q" in source["QolNearbyInventory"] and "KeyCode.R" in source["QolNearbyInventory"]
 assert "RangeSq = 100f * 100f" in source["QolNearbyInventory"]
 assert "MoveItemToThis" in source["QolNearbyInventory"]
@@ -100,6 +111,6 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.9"
+assert manifest["version_number"] == "0.1.10"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")

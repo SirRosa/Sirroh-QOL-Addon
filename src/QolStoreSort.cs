@@ -111,7 +111,7 @@ namespace Sirroh.Qol
         {
             if (gui == null || gui.m_player == null) return Vector3.zero;
             Transform weight = gui.m_player.Find("Weight");
-            return weight != null ? weight.localPosition + new Vector3(5f*IconSpacing+9f,-52f,0f)
+            return weight != null ? weight.localPosition + new Vector3(5f*IconSpacing+30f,-52f,0f)
                 : new Vector3(180f,34f,0f);
         }
 

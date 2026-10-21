@@ -12,7 +12,7 @@ using Mono.Cecil.Cil;
 if (args.Length == 2 && args[0] == "--verify-qol-assets")
 {
     using var a = AssemblyDefinition.ReadAssembly(args[1]);
-    foreach (string name in new [] {"border","trash","trashmask","trashingborder","RecyclingPanel"})
+    foreach (string name in new [] {"border","trash","trashmask","trashingborder","RecyclingPanel","ui_sort","ui_favorite","ui_quickstack","ui_restock","ui_recycle"})
     {
         string logical = "Sirroh.Qol.Assets." + name + ".rgba";
         var asset = a.MainModule.Resources.FirstOrDefault(r=>r.Name == logical) as EmbeddedResource;
@@ -25,7 +25,7 @@ if (args.Length == 2 && args[0] == "--verify-qol-assets")
              throw new InvalidOperationException("Invalid embedded PNG conversion: "+logical);
         Console.WriteLine(logical + " " + width + "x" + height + " confirmed in DLL.");
     }
-    Console.WriteLine("PASS: all 5 authentic QOL image resources embedded.");
+    Console.WriteLine("PASS: all 10 authentic QOL image resources embedded.");
     return;
 }
 

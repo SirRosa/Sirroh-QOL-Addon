@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.9 (test release)
+# Sirroh QOL Addon — 0.1.10 (test release)
 
 One BepInEx DLL with six configurable features plus skill-scaled Build Camera for **Sirroh Overhaul 0.22.65+** on Valheim 1.0.
 
@@ -82,3 +82,10 @@ Valheim sectors measure 64m. On the standard network simulation distance near=2,
 
 - Inventory actions also include **Sort**, **Store All**, **Quickstack Q**, **Restock R** buttons. Sort reorders only unprotected inventory slots, without moving the hotbar, equipped gear or favorited slots/items. Store All sends eligible non-hotbar, non-favorited items to the currently opened chest (including types not already in it), with the same network ownership and ward checks.
 - Unlike Quickstack, Restock may refill an existing hotbar stack; nothing is *taken away* from the hotbar.
+
+## v0.1.10 UI and performance pass
+- New supplied icons physically resampled: Sort/Favorite/Quickstack/Restock **32×32**, Recycle **48×48**. On-screen sizes: **21×21** within 26×26 mini buttons, Recycle **31×31** inside a 38×38 drop/click target. All alpha is retained. The original five mod textures are still included in the DLL.
+- Anchored like QuickStackStore under the player's **Weight** block (not a 380px button strip). Icons: Sort, Quickstack, Restock, Favorite mode, context-only Store All (Quickstack icon with A overlay); compact Recycle icon beside the row. Tooltips appear only on hover; Favorite toggles Alt-like favoriting mode.
+- Chest selection uses a **32m spatial hash**, limiting searches to neighboring loaded cells within 100m. No per-command global chest scan or sorting. Chests are indexed by item type before expensive ownership RPCs; only relevant chests may be claimed.
+- Restock uses pooled item lists by type, built once per chest (instead of repeated chest inventory scans per player item). Transfers are spread across frames with a **2ms cooperative budget**. Every loaded eligible chest within 100m is processed; no arbitrary 128-chest cutoff. Multiplayer permissions and wards remain checked before mutation.
+- In-game checking remains necessary for performance and UI collision with the user's other modded overlays. Track console log/errors, a dense chest room, multiplayer and small/large inventory interactions.

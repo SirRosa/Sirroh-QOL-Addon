@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.10
+- Replace 380px wide labeled buttons with 26px icon-only mini-controls arranged under the vanilla Weight anchor like QuickStackStore. Favorite has a toggle state, Store All only appears for an opened container. Reclaim receives its own compact 38px drop target. Add mouseover tooltips.
+- Incorporate all five user-supplied icons: Sort, Favorite, QuickStack, Restock at 32x32, Recycle at 48x48 (source 64x64); embed PNG-derived RGBA resources in the single DLL. Retain the five previously embedded compatibility icons/resources.
+- Optimize Q/R in large bases: 32-meter spatial hash for known containers, no full-world container scan or distance sort; precheck relevant stacks BEFORE claiming network ownership; create a pooled per-container name-to-stacks index once per chest rather than searching it repeatedly; 2ms cooperative main-thread budget including transfer loops; no fixed 128-chest truncation.
+- Reclaim and protected favorites behavior unchanged. Existing Q/R keybindings and 100m radius unchanged.
+
 ## 0.1.9
 - Add integrated Recycle N Reclaim and QuickStackStore modules (no extra plugin DLLs). Q: Quickstack into nearby accessible chests within 100m; R: Restock existing non-hotbar stacks from nearby chests within 100m.
 - One Trash/Reclaim UI target: dragging a supported recipe-based item returns 100% ingredient yield, including quality upgrades, only after preflighting cumulative inventory stack/slot/weight capacity; non-recyclable items ask for explicit "Czy na pewno chcesz zniszczyć ten przedmiot?" Tak/Nie before deleting.
