@@ -30,3 +30,19 @@ for name, relative in items.items():
     assert len(output) == 8 + width * height * 4
     (out / (name + ".rgba")).write_bytes(output)
     print(f"Embedded original {name}: {width}x{height}, {len(raw)} PNG bytes")
+
+
+# Five user-supplied icons are committed alongside the source, not downloaded
+# from third-party services at build time. They retain full alpha.
+for name in ("sort", "favorite", "quickstack", "restock", "recycle"):
+    source_file = Path("assets/icons") / (name + ".png")
+    with Image.open(source_file) as original:
+        image = original.convert("RGBA")
+        width, height = image.size
+        if name == "recycle":
+            assert (width, height) == (48, 48)
+        else:
+            assert (width, height) == (32, 32)
+        output = struct.pack("<II", width, height) + image.tobytes()
+    (out / ("ui_" + name + ".rgba")).write_bytes(output)
+    print("Embedded UI icon", name, str(width) + "x" + str(height))
