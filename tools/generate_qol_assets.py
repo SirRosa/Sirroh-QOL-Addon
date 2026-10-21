@@ -32,17 +32,35 @@ for name, relative in items.items():
     print(f"Embedded original {name}: {width}x{height}, {len(raw)} PNG bytes")
 
 
-# Five user-supplied icons are committed alongside the source, not downloaded
-# from third-party services at build time. They retain full alpha.
-for name in ("sort", "favorite", "quickstack", "restock", "recycle"):
-    source_file = Path("assets/icons") / (name + ".png")
-    with Image.open(source_file) as original:
-        image = original.convert("RGBA")
-        width, height = image.size
-        if name == "recycle":
-            assert (width, height) == (48, 48)
-        else:
-            assert (width, height) == (32, 32)
-        output = struct.pack("<II", width, height) + image.tobytes()
-    (out / ("ui_" + name + ".rgba")).write_bytes(output)
-    print("Embedded UI icon", name, str(width) + "x" + str(height))
+# Lossless atlas assembled from the user's current conversation uploads.
+# Six text chunks reconstruct the exact original 64x64 RGBA for:
+# Sort, QuickStack, Restock, Recycle, Favorite and the wooden 64x64 frame.
+# The checked digest prevents silent re-encoding/corruption.
+import base64, bz2, hashlib
+packed_b64 = "".join(
+    (Path("assets/supplied_64") / ("ui_atlas.bz2.b64.part" + str(i))).read_text().strip()
+    for i in range(6)
+)
+packed = base64.b64decode(packed_b64, validate=True)
+assert hashlib.sha256(packed).hexdigest() == (
+    "b3be72dc3266d7d04979f9234d96a46e200bc70b6f539b4e880595a349f61d76"
+), "Uploaded UI asset atlas differs from the user original"
+rgba = bz2.decompress(packed)
+assert len(rgba) == 256 * 128 * 4
+assert hashlib.sha256(rgba).hexdigest() == (
+    "dfc004814b5c9d0a3b8d063034953eac3b18feb580db3342f7cf86c4664c7f54"
+), "Uploaded pixel data differs from the user original"
+atlas = Image.frombytes("RGBA", (256,128), rgba)
+for name, x, y in (
+    ("sort",0,0), ("quickstack",64,0),
+    ("restock",128,0), ("recycle",192,0),
+    ("favorite",0,64), ("wood",64,64),
+):
+    icon = atlas.crop((x,y,x+64,y+64))
+    # Pillow is top-down, UnityEngine.Texture2D.LoadRawTextureData is
+    # bottom-up; flip rows here so the on-screen artwork is upright.
+    icon = icon.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+    output = struct.pack("<II",64,64) + icon.tobytes()
+    assert len(output) == 8+64*64*4
+    (out / ("ui_"+name+".rgba")).write_bytes(output)
+    print("User supplied exact UI:",name,"64x64 (lossless)")
