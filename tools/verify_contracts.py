@@ -116,7 +116,7 @@ assert "float upper=weightBottom-3f*scale;" in source["QolStoreSort"]
 assert "float woodWidth=84f*scale;" in source["QolStoreSort"]
 assert "exposed+16f*scale" in source["QolStoreSort"]
 assert "new Vector2(centerX,bottom),woodWidth,boardHeight" in source["QolStoreSort"]
-assert "_recycleCenter=new Vector2(centerX,weightTop+nativeTabHeight*.5f" in source["QolStoreSort"]
+assert "_recycleCenter=new Vector2(iconCenterX,weightTop+nativeTabHeight*.5f" in source["QolStoreSort"]
 assert "PositionAt(" not in source["QolStoreSort"]
 # Regression geometry from the 1920x1080 game screenshot:
 # inventory bottom 475px, Weight bottom 300px.
@@ -135,7 +135,7 @@ assert "db.GetRecipe(item)" in source["QolTrashReclaim"]
 assert "Recipe prefabMatch = null" in source["QolTrashReclaim"]
 assert "if (item.m_customData != null && item.m_customData.Count > 0)" not in source["QolTrashReclaim"]
 assert "PositionRecycle(_buttonRect)" in source["QolTrashReclaim"]
-assert "QolFavorites.FavoriteIcon,3,ToggleFavorite" in source["QolStoreSort"]
+assert "QolFavorites.FavoriteIcon,0,ToggleFavorite" in source["QolStoreSort"]
 assert "SpriteMeshType.FullRect" in source["QolFavorites"]
 assert "dfc004814b5c9d0a3b8d063034953eac3b18feb580db3342f7cf86c4664c7f54" in (root / "tools/generate_qol_assets.py").read_text()
 assert len(list((root / "assets/supplied_64").glob("ui_atlas.bz2.b64.part*"))) == 6
