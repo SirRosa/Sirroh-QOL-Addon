@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.14 (test release)
+# Sirroh QOL Addon — 0.1.15 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 
@@ -116,3 +116,8 @@ Coordinates are converted to screen/Canvas space, scaling uniformly to other scr
 - Wooden tabs extend ~16px beneath the existing inventory edge while matching the exact outer right edge of vanilla weight/shield tabs. They are sized to the available 3-slot height, with 1px separation and 52px bounded icon-hit targets.
 - A proportional screenshot-based fallback is retained for UI replacement mods that do not expose suitable Weight transform bounds. Recycle stays above Weight. Favorite and Store All remain unchanged.
 - All Q/R transfer, Reclaim, icons, and other modules remain untouched.
+
+## v0.1.15 — transparent hitboxes, optical alignment, Favorite on shield
+- The 0.012-alpha neutral UI Image layers were still visible on top of wood. All five clickable Image backgrounds are now **Color.clear** with `raycastTarget=true`; the icons and transparent click surfaces remain usable.
+- Four side-rail icon and hitbox centers now shift **13 reference pixels to the right** from the old full-wood center; wooden backing and heights are untouched. The exposed tab face is centered at about x656 versus former x642, based on the supplied 1920×1080 screenshot.
+- Favorite star is removed from the Weight action row and placed above the player's **armor shield badge** (approximately x643/y80 at 1920×1080). It follows the actual `Armor/armor_icon` RectTransform when available, with screenshot-relative fallback. Store All retains its existing position. Favorite type/slot persistence is unchanged.

@@ -46,6 +46,11 @@ namespace Sirroh.Qol
         private const float ActionHitSize = 52f;
         private const float ActionIconInset = 9f;
         private const float RecycleHitSize = 54f;
+        // Shift from the original (partially hidden) 84px board center to
+        // the center of the visible right-hand tab in the user's screenshot.
+        private const float VisibleRailInset = 13f;
+        private const float ArmorShieldX = 643f;
+        private const float ArmorShieldY = 80f;
 
         private static RectTransform _sort, _quick, _restock;
         private static RectTransform _recycleWood, _sortWood, _quickWood, _restockWood;
@@ -122,15 +127,17 @@ namespace Sirroh.Qol
             _restock = MakeAction("Restock (R)", QolFavorites.RestockIcon,
                 () => QolNearbyInventory.StartArea(false));
 
-            // Favorite (and the existing Store All shortcut) remain in their
-            // previous place, below the Weight element.
+            // The Favorite star belongs in the center of the ARMOR SHIELD,
+            // not in the Weight action strip. Store All stays by Weight.
             _favoritePanel = new GameObject("SirrohQOLFavorites", typeof(RectTransform));
             _favoritePanel.transform.SetParent(gui.m_player, false);
             RectTransform fav = _favoritePanel.GetComponent<RectTransform>();
             fav.sizeDelta = new Vector2(145f, 30f);
-            _favoriteButton = MakeSmallButton(fav,"Ulubione (Alt + LPM / PPM)",
-                QolFavorites.FavoriteIcon,3,ToggleFavorite);
+            _favoriteButton = MakeSmallButton(_overlayRect,"Ulubione (Alt + LPM / PPM)",
+                QolFavorites.FavoriteIcon,0,ToggleFavorite);
             _favoriteImage = _favoriteButton.transform.Find("Icon").GetComponent<Image>();
+            // A 17px star fits inside the 27x33px metal armor-shield icon.
+            _favoriteImage.rectTransform.sizeDelta = new Vector2(17f,17f);
             _storeButton = MakeSmallButton(fav,"Store All",QolFavorites.QuickIcon,4,
                 QolNearbyInventory.StartStoreCurrent);
 
@@ -182,7 +189,9 @@ namespace Sirroh.Qol
             rt.anchorMin = rt.anchorMax = new Vector2(.5f,.5f);
             rt.pivot = new Vector2(.5f,.5f);
             Image background = go.GetComponent<Image>();
-            background.color = new Color(1f,1f,1f,.012f);
+            // Zero alpha removes the visible gray quad while the Image still
+            // participates in the Unity GraphicRaycaster for Button clicks.
+            background.color = Color.clear;
             background.raycastTarget = true;
             Button btn = go.GetComponent<Button>();
             btn.transition = Selectable.Transition.None;
@@ -214,7 +223,8 @@ namespace Sirroh.Qol
             rt.sizeDelta = new Vector2(26f,26f);
             rt.anchoredPosition = new Vector2(index*28f+13f,0f);
             Image hit = go.GetComponent<Image>();
-            hit.color = new Color(1f,1f,1f,.012f);
+            hit.color = Color.clear;
+            hit.raycastTarget = true;
             Button btn = go.GetComponent<Button>();
             btn.transition = Selectable.Transition.None;
             btn.onClick.AddListener(()=>command());
@@ -244,6 +254,7 @@ namespace Sirroh.Qol
         {
             if (gui == null || gui != _gui || _overlay == null) return;
             PositionActions(gui);
+            PositionFavorite(gui);
             if (_favoritePanel != null)
             {
                 Transform weight=gui.m_player.Find("Weight");
@@ -298,6 +309,32 @@ namespace Sirroh.Qol
                 rect.anchoredPosition=local;
             float canvasScale=_canvas != null ? Mathf.Max(.01f,_canvas.scaleFactor) : 1f;
             rect.sizeDelta=new Vector2(screenWidth/canvasScale,screenHeight/canvasScale);
+        }
+
+        private static void PositionFavorite(InventoryGui gui)
+        {
+            if (_favoriteButton == null || gui == null || gui.m_player == null)
+                return;
+            float scale = Mathf.Min(Screen.width/DesignWidth,
+                                    Screen.height/DesignHeight);
+            float offsetX = (Screen.width-DesignWidth*scale)*.5f;
+            float offsetY = (Screen.height-DesignHeight*scale)*.5f;
+            Vector2 target = new Vector2(offsetX+ArmorShieldX*scale,
+                offsetY+(DesignHeight-ArmorShieldY)*scale);
+            // Prefer the actual shield icon so it follows inventory position
+            // and scaling, including UI-overhaul repositioning.
+            Transform armor = gui.m_player.Find("Armor");
+            RectTransform shield = armor != null
+                ? armor.Find("armor_icon") as RectTransform : null;
+            if (shield != null && shield.gameObject.activeInHierarchy)
+            {
+                Rect rect = ScreenBounds(shield);
+                if(rect.width >= 12f*scale && rect.width <= 65f*scale &&
+                   rect.height >= 12f*scale && rect.height <= 65f*scale)
+                    target=rect.center;
+            }
+            PositionScreen(_favoriteButton.transform as RectTransform,
+                target, 24f*scale,24f*scale);
         }
 
         private static void PositionActions(InventoryGui gui)
@@ -357,6 +394,10 @@ namespace Sirroh.Qol
                 woodWidth=Mathf.Clamp(exposed+16f*scale,72f*scale,105f*scale);
             }
             float centerX=rightEdge-woodWidth*.5f;
+            // Board image remains where it was; its exposed face has a
+            // different optical center because the left end sits behind
+            // the default inventory. Move only icons/hitboxes right.
+            float iconCenterX=centerX+Mathf.Min(VisibleRailInset*scale,woodWidth*.18f);
             float lower=playerBottom+4f*scale;
             float upper=weightBottom-3f*scale;
             float available=upper-lower;
@@ -375,16 +416,16 @@ namespace Sirroh.Qol
             float top=upper-slot*.5f;
             float middle=upper-slot*1.5f;
             float bottom=upper-slot*2.5f;
-            PositionScreen(_sort,new Vector2(centerX,top),iconHit,iconHit);
-            PositionScreen(_quick,new Vector2(centerX,middle),iconHit,iconHit);
-            PositionScreen(_restock,new Vector2(centerX,bottom),iconHit,iconHit);
+            PositionScreen(_sort,new Vector2(iconCenterX,top),iconHit,iconHit);
+            PositionScreen(_quick,new Vector2(iconCenterX,middle),iconHit,iconHit);
+            PositionScreen(_restock,new Vector2(iconCenterX,bottom),iconHit,iconHit);
             PositionScreen(_sortWood,new Vector2(centerX,top),woodWidth,boardHeight);
             PositionScreen(_quickWood,new Vector2(centerX,middle),woodWidth,boardHeight);
             PositionScreen(_restockWood,new Vector2(centerX,bottom),woodWidth,boardHeight);
 
             // Recycle remains immediately above Weight, like the existing
             // native recycling bar. Preserve its position relative to Weight.
-            _recycleCenter=new Vector2(centerX,weightTop+nativeTabHeight*.5f+3f*scale);
+            _recycleCenter=new Vector2(iconCenterX,weightTop+nativeTabHeight*.5f+3f*scale);
             PositionScreen(_recycleWood,_recycleCenter,woodWidth,
                 Mathf.Min(70f*scale,nativeTabHeight));
         }

@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 15, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.14"' in source["Plugin"]
+assert 'Version = "0.1.15"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -159,6 +159,34 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.14"
+assert manifest["version_number"] == "0.1.15"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
+
+assert "VisibleRailInset = 13f" in source["QolStoreSort"]
+assert "float iconCenterX=centerX+Mathf.Min(VisibleRailInset*scale,woodWidth*.18f);" in source["QolStoreSort"]
+assert "PositionScreen(_sort,new Vector2(iconCenterX,top),iconHit,iconHit)" in source["QolStoreSort"]
+assert "PositionScreen(_quick,new Vector2(iconCenterX,middle),iconHit,iconHit)" in source["QolStoreSort"]
+assert "PositionScreen(_restock,new Vector2(iconCenterX,bottom),iconHit,iconHit)" in source["QolStoreSort"]
+assert "_recycleCenter=new Vector2(iconCenterX" in source["QolStoreSort"]
+assert "background.color = Color.clear;" in source["QolStoreSort"]
+assert "hit.color = Color.clear;" in source["QolStoreSort"]
+assert "hit.color = Color.clear;" in source["QolTrashReclaim"]
+assert "background.raycastTarget = true;" in source["QolStoreSort"]
+assert "hit.raycastTarget = true;" in source["QolTrashReclaim"]
+assert "ArmorShieldX = 643f" in source["QolStoreSort"]
+assert "ArmorShieldY = 80f" in source["QolStoreSort"]
+assert "armor.Find(\"armor_icon\") as RectTransform" in source["QolStoreSort"]
+assert "PositionFavorite(gui);" in source["QolStoreSort"]
+assert "QolFavorites.FavoriteIcon,0,ToggleFavorite" in source["QolStoreSort"]
+assert "_favoriteImage.rectTransform.sizeDelta = new Vector2(17f,17f)" in source["QolStoreSort"]
+assert ".012f" not in source["QolStoreSort"] and ".012f" not in source["QolTrashReclaim"]
+# Screenshot geometry: board approx x=600..684, exposed x=628..684.
+# Its visible midpoint is 656; center of the hit regions moves from x642 to 655.
+board_right = 684.0
+wood_width = 84.0
+previous_center = board_right - wood_width/2
+new_center = previous_center + min(13.0,wood_width*0.18)
+assert abs(new_center - 655) < 0.01
+assert abs(new_center - (628+684)/2) <= 1
+assert new_center+26 <= board_right

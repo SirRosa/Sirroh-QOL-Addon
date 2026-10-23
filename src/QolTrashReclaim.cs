@@ -64,7 +64,8 @@ namespace Sirroh.Qol
             _buttonRect.sizeDelta = new Vector2(64f,64f);
             _buttonRect.anchorMin = _buttonRect.anchorMax = new Vector2(.5f,.5f);
             Image hit = _buttonObject.GetComponent<Image>();
-            hit.color = new Color(1f,1f,1f,.012f);
+            // The hitbox stays interactive but must not tint the wooden tab.
+            hit.color = Color.clear;
             hit.raycastTarget = true;
             Button button = _buttonObject.GetComponent<Button>();
             button.transition = Selectable.Transition.None;

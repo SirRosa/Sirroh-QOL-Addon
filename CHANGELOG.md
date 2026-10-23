@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.15
+- Remove the semi-transparent square behind Sort, Quickstack, Restock, Recycle and Favorite by using fully transparent raycast-enabled Button Image surfaces. Hit targets and icon artwork remain unchanged.
+- Shift only the four action icon/clickable regions right by 13px at reference 1920x1080, matching the visible part of the wooden side tabs (not their hidden underlay). Keep wooden tabs and their vertical spacing intact.
+- Reposition Favorite into the center of the gray armor-shield icon above the Armor value, preferring the actual Armor/armor_icon RectTransform with a screenshot-derived X643/Y80 fallback. Reduce its on-screen artwork to 17px and preserve its toggle functionality.
+- All gameplay modules, hotkeys, and previous Q/R/Reclaim mechanics remain unchanged.
+
 ## 0.1.14
 - Replace the combined 200px StackWoodTab with three separately sized and positioned wooden tabs (Sort, Quickstack, Restock).
 - Anchor them to actual runtime inventory/Weight rect geometry, divide available vertical space into equal thirds and stop the third tab above the inventory bottom.
