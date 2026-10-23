@@ -19,15 +19,20 @@ namespace Sirroh.Qol
     {
         private const string LitShaderName = "Custom/LitGui";
         private static readonly int BrightnessId = Shader.PropertyToID("_Brightness");
-        // Calibrated to distinguish the new dark rail from the brighter
-        // vanilla armor/weight labels at nighttime (reference screenshot).
-        // Background should remain wooden/dark; golden glyphs must stay legible.
-        private const float WoodBrightnessFactor = 1.25f;
-        private const float GlyphBrightnessFactor = 2.40f;
+        // Relative to the ACTUAL brightness of Valheim's native material.
+        // The v0.1.20 clamp to a minimum brightness of 1.0 caused the
+        // washed-out panel shown in the user's screenshot; never do that.
+        // Blend gently toward the previous upper targets instead.
+        private const float WoodTarget = 1.25f;
+        private const float GlyphTarget = 2.40f;
+        private const float WoodBlend = 0.16f;
+        private const float GlyphBlend = 0.40f;
+        private const float FavoriteBlend = 0.62f;
 
         private static Material _nativeLitMaterial;
         private static Material _woodLitMaterial;
         private static Material _glyphLitMaterial;
+        private static Material _favoriteLitMaterial;
         private static bool _warned;
         private static int _boundCount;
 
@@ -60,7 +65,7 @@ namespace Sirroh.Qol
         }
 
         private static Material MakeVariant(Material reference, string label,
-            float brightnessMultiplier)
+            float previousTarget, float blend)
         {
             Material variant = new Material(reference);
             variant.name = "Sirroh QOL - LitGui " + label;
@@ -68,11 +73,12 @@ namespace Sirroh.Qol
             if (variant.HasProperty(BrightnessId))
             {
                 float original = reference.GetFloat(BrightnessId);
-                // Shader's documented neutral brightness is 1. Values from a
-                // dark-panel preset may be lower. Never reduce an existing
-                // native brightness; increase it within a safe, finite range.
-                float adjusted = Mathf.Clamp(Mathf.Max(original, 1f) *
-                    brightnessMultiplier, 1f, 4f);
+                // Use the REAL vanilla baseline, even when it is below 1.
+                // Only part of the distance toward the previous (too bright)
+                // release is retained. Preserve native nighttime variation.
+                float adjusted = Mathf.Clamp(
+                    original + (Mathf.Max(original, previousTarget) -
+                                original) * blend, 0.01f, 4f);
                 variant.SetFloat(BrightnessId, adjusted);
                 Plugin.Instance?.Log.LogInfo(
                     "QOL LitGui " + label + ": native _Brightness=" +
@@ -95,13 +101,17 @@ namespace Sirroh.Qol
                 UnityEngine.Object.Destroy(_woodLitMaterial);
             if (_glyphLitMaterial != null)
                 UnityEngine.Object.Destroy(_glyphLitMaterial);
+            if (_favoriteLitMaterial != null)
+                UnityEngine.Object.Destroy(_favoriteLitMaterial);
             _woodLitMaterial = null;
             _glyphLitMaterial = null;
+            _favoriteLitMaterial = null;
         }
 
         private static bool Resolve(InventoryGui gui)
         {
-            if (_woodLitMaterial != null && _glyphLitMaterial != null)
+            if (_woodLitMaterial != null && _glyphLitMaterial != null &&
+                _favoriteLitMaterial != null)
                 return true;
             if (gui == null || gui.m_player == null) return false;
 
@@ -138,8 +148,9 @@ namespace Sirroh.Qol
                 UnityEngine.Object.Destroy(_nativeLitMaterial);
             _nativeLitMaterial = source;
             _ownsOldSource = _ownsSource;
-            _woodLitMaterial = MakeVariant(source, "wood", WoodBrightnessFactor);
-            _glyphLitMaterial = MakeVariant(source, "glyphs", GlyphBrightnessFactor);
+            _woodLitMaterial = MakeVariant(source, "wood", WoodTarget, WoodBlend);
+            _glyphLitMaterial = MakeVariant(source, "glyphs", GlyphTarget, GlyphBlend);
+            _favoriteLitMaterial = MakeVariant(source, "favorite", GlyphTarget, FavoriteBlend);
             return true;
         }
 
@@ -154,7 +165,9 @@ namespace Sirroh.Qol
         private static void Apply(Image image, bool wood)
         {
             if (image == null) return;
-            Material material = wood ? _woodLitMaterial : _glyphLitMaterial;
+            Material material = wood ? _woodLitMaterial :
+                (image.sprite != null && image.sprite == QolFavorites.FavoriteIcon
+                    ? _favoriteLitMaterial : _glyphLitMaterial);
             if (material == null || image.material == material) return;
             image.material = material;
             _boundCount++;
