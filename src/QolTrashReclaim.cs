@@ -61,7 +61,7 @@ namespace Sirroh.Qol
                 typeof(Image),typeof(Button));
             _buttonObject.transform.SetParent(overlay,false);
             _buttonRect = _buttonObject.GetComponent<RectTransform>();
-            _buttonRect.sizeDelta = new Vector2(64f,64f);
+            _buttonRect.sizeDelta = new Vector2(52f,52f);
             _buttonRect.anchorMin = _buttonRect.anchorMax = new Vector2(.5f,.5f);
             Image hit = _buttonObject.GetComponent<Image>();
             // The hitbox stays interactive but must not tint the wooden tab.
@@ -73,12 +73,12 @@ namespace Sirroh.Qol
             GameObject icon = new GameObject("RecycleIcon",typeof(RectTransform),typeof(Image));
             icon.transform.SetParent(_buttonRect,false);
             RectTransform iconRt = icon.GetComponent<RectTransform>();
-            iconRt.anchorMin = iconRt.anchorMax = new Vector2(.5f,.5f);
             iconRt.anchorMin=Vector2.zero;
             iconRt.anchorMax=Vector2.one;
-            // 38px Recycle image inside a 54px target.
-            iconRt.offsetMin=new Vector2(8f,8f);
-            iconRt.offsetMax=new Vector2(-8f,-8f);
+            // Exact match for Sort/Quickstack/Restock: 34px icon inside
+            // the same 52px clickable region with symmetric 9px insets.
+            iconRt.offsetMin=new Vector2(9f,9f);
+            iconRt.offsetMax=new Vector2(-9f,-9f);
             iconRt.anchoredPosition = Vector2.zero;
             Image image = icon.GetComponent<Image>();
             image.sprite = QolFavorites.RecycleIcon;

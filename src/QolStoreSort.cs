@@ -44,7 +44,7 @@ namespace Sirroh.Qol
         private const float DefaultWeightBottom = 300f;
         private const float ActionHitSize = 52f;
         private const float ActionIconInset = 9f;
-        private const float RecycleHitSize = 54f;
+        private const float RecycleHitSize = ActionHitSize;
         // Shift from the original (partially hidden) 84px board center to
         // the center of the visible right-hand tab in the user's screenshot.
         private const float VisibleRailInset = 6f;
@@ -417,8 +417,9 @@ namespace Sirroh.Qol
             // Recycle remains immediately above Weight, like the existing
             // native recycling bar. Preserve its position relative to Weight.
             _recycleCenter=new Vector2(iconCenterX,weightTop+nativeTabHeight*.5f+3f*scale);
-            PositionScreen(_recycleWood,_recycleCenter,woodWidth,
-                Mathf.Min(70f*scale,nativeTabHeight));
+            // Match Recycle's wooden tab height exactly to the three
+            // lower buttons; keep its anchored position above Weight.
+            PositionScreen(_recycleWood,_recycleCenter,woodWidth,boardHeight);
         }
 
         internal static void PositionRecycle(RectTransform rect)
@@ -508,13 +509,16 @@ namespace Sirroh.Qol
     }
 
     /// <summary>
-    /// Lightweight hover feedback, with no floating text, allocations per hover
-    /// or Update loop. Favorite stays gold while editing is active.
+    /// High-contrast hover feedback using a single cached Unity UI Outline:
+    /// four-sided halo on the icon silhouette, brighter warm tint and a
+    /// slight 8% scale lift. Only changes on pointer transitions; no update
+    /// loop, no new textures, and no floating tooltip text.
     /// </summary>
     internal sealed class QolIconHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         private Image _graphic;
-        private Shadow _glow;
+        private Outline _outline;
+        private Vector3 _normalScale;
         private bool _isFavorite;
         private bool _hovered;
 
@@ -523,12 +527,17 @@ namespace Sirroh.Qol
             _graphic = graphic;
             _isFavorite = isFavorite;
             if (_graphic == null) return;
-            _glow = _graphic.GetComponent<Shadow>();
-            if (_glow == null) _glow = _graphic.gameObject.AddComponent<Shadow>();
-            _glow.effectColor = new Color(1f, .78f, .42f, .22f);
-            _glow.effectDistance = new Vector2(0f, -1f);
-            _glow.useGraphicAlpha = true;
-            _glow.enabled = false;
+            _normalScale = _graphic.rectTransform.localScale;
+
+            // Outline expands in four directions; the previous 1px Shadow
+            // drew only below the icon with alpha .22 and was nearly invisible.
+            _outline = _graphic.GetComponent<Outline>();
+            if (_outline == null)
+                _outline = _graphic.gameObject.AddComponent<Outline>();
+            _outline.effectColor = new Color(1f, .80f, .43f, .78f);
+            _outline.effectDistance = new Vector2(1.6f, 1.6f);
+            _outline.useGraphicAlpha = true;
+            _outline.enabled = false;
             Refresh();
         }
 
@@ -537,21 +546,23 @@ namespace Sirroh.Qol
             if (_graphic == null) return;
             if (_isFavorite)
             {
+                // Bronze when inactive; gold on hover or in Favorite mode.
                 bool gold = _hovered || QolFavorites.FavoriteMode;
-                // Bright, muted bronze (inactive) against the dark steel
-                // armor shield; warm gold when hovered or editing favorites.
-                // The old .73/.49/.30 tint was almost invisible at night.
                 _graphic.color = gold
                     ? new Color(1f, .96f, .76f, 1f)
                     : new Color(1f, .78f, .52f, 1f);
             }
             else
             {
+                // An obvious but restrained warm highlight. A .89->1.0
+                // neutral tint by itself was too hard to see in LitGui at night.
                 _graphic.color = _hovered
-                    ? new Color(1f, .99f, .93f, 1f)
+                    ? new Color(1f, .96f, .73f, 1f)
                     : new Color(.89f, .89f, .89f, 1f);
             }
-            if (_glow != null) _glow.enabled = _hovered;
+            if (_outline != null) _outline.enabled = _hovered;
+            _graphic.rectTransform.localScale =
+                _hovered ? _normalScale * 1.08f : _normalScale;
         }
 
         public void OnPointerEnter(PointerEventData eventData)
