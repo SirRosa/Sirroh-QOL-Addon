@@ -538,9 +538,12 @@ namespace Sirroh.Qol
             if (_isFavorite)
             {
                 bool gold = _hovered || QolFavorites.FavoriteMode;
+                // Bright, muted bronze (inactive) against the dark steel
+                // armor shield; warm gold when hovered or editing favorites.
+                // The old .73/.49/.30 tint was almost invisible at night.
                 _graphic.color = gold
-                    ? new Color(1f, .92f, .62f, 1f)
-                    : new Color(.73f, .49f, .30f, 1f);
+                    ? new Color(1f, .96f, .76f, 1f)
+                    : new Color(1f, .78f, .52f, 1f);
             }
             else
             {
