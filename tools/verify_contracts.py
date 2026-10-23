@@ -224,7 +224,7 @@ assert "QolNativeUiLighting.Apply(image);" in source["QolTrashReclaim"]
 assert "QolNativeUiLighting.Apply(overlay);" in source["QolFavorites"]
 assert "QolNativeUiLighting.Shutdown();" in source["Plugin"]
 assert "GetComponentsInChildren<Image>(true)" in lighting
-assert "image.color.a < .00001f" in lighting
+assert "img.color.a < .00001f" in lighting
 assert "Update()" not in lighting
 assert "EnvMan.instance" not in lighting
 assert "IsNight" not in lighting
