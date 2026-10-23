@@ -10,6 +10,69 @@ using Mono.Cecil.Cil;
 
 
 
+
+if (args.Length == 2 && args[0] == "--inspect-vanilla-ui-dimming")
+{
+    using var asm = AssemblyDefinition.ReadAssembly(args[1]);
+    string[] typeNames = { "InventoryGui", "Hud", "EnvMan", "GuiBar", "GuiScaler",
+        "GuiInputField", "InventoryGrid", "FejdStartup", "Menu",
+        "GameCamera", "Game", "Player", "Minimap", "UITime", "UISettings",
+        "UIGroupHandler", "UITooltip", "GuiPicker", "Settings", "GameCamera",
+        "Lighting", "Utils", "DayCycle", "DodgeableUI" };
+    string[] needles = { "set_color", "set_alpha", "SetColor", "SetFloat",
+       "SetGlobalColor", "SetGlobalFloat", "GetGlobalColor", "GetGlobalFloat",
+       "GetAmbient", "GetLight", "GetSky", "IsNight", "IsDay", "GetCurrentEnvironment",
+       "SetGlobalVector", "SetGlobalTexture", "set_material", "set_shader", "get_color" };
+    var types=asm.MainModule.Types;
+    foreach(var type in types.Where(t=>typeNames.Contains(t.Name)))
+    {
+        Console.WriteLine("### TYPE "+type.FullName);
+        foreach(var field in type.Fields.Where(f=>
+            f.Name.IndexOf("color",StringComparison.OrdinalIgnoreCase)>=0 ||
+            f.Name.IndexOf("dim",StringComparison.OrdinalIgnoreCase)>=0 ||
+            f.Name.IndexOf("light",StringComparison.OrdinalIgnoreCase)>=0 ||
+            f.Name.IndexOf("night",StringComparison.OrdinalIgnoreCase)>=0 ||
+            f.Name.IndexOf("material",StringComparison.OrdinalIgnoreCase)>=0))
+            Console.WriteLine("FIELD "+field.FullName);
+        foreach(var method in type.Methods)
+        {
+            if(!method.HasBody)continue;
+            var inst=method.Body.Instructions;
+            var calls=inst.Select((il,i)=>new {il,i})
+              .Where(x=>x.il.Operand is MethodReference m && needles.Any(
+                  n=>m.Name.IndexOf(n,StringComparison.OrdinalIgnoreCase)>=0))
+              .ToArray();
+            bool named=method.Name.IndexOf("color",StringComparison.OrdinalIgnoreCase)>=0
+                || method.Name.IndexOf("brightness",StringComparison.OrdinalIgnoreCase)>=0
+                || method.Name.IndexOf("dark",StringComparison.OrdinalIgnoreCase)>=0
+                || method.Name.IndexOf("light",StringComparison.OrdinalIgnoreCase)>=0;
+            if(!named && calls.Length==0)continue;
+            Console.WriteLine("METHOD "+method.FullName+" callCount="+calls.Length);
+            foreach(var c in calls)
+            {
+                Console.WriteLine("  CALL "+c.il);
+                int from=Math.Max(0,c.i-4), to=Math.Min(inst.Count-1,c.i+3);
+                for(int j=from;j<=to;j++)Console.WriteLine("    "+inst[j]);
+            }
+        }
+    }
+    // Search ALL game code for global shader globals. If Valheim fades the
+    // inventory via shader property, this pinpoints the authoritative writer.
+    foreach(var type in types)
+        foreach(var method in type.Methods.Where(m=>m.HasBody))
+        {
+            foreach(var il in method.Body.Instructions)
+            {
+                if(il.Operand is MethodReference callee && (
+                    callee.Name.StartsWith("SetGlobal",StringComparison.Ordinal) ||
+                    callee.Name.StartsWith("GetGlobal",StringComparison.Ordinal)) &&
+                    callee.DeclaringType.Name=="Shader")
+                    Console.WriteLine("GLOBAL SHADER "+method.FullName+" :: "+il);
+            }
+        }
+    return;
+}
+
 if (args.Length == 2 && args[0] == "--diagnose-inventory-recipe-null")
 {
     using var a = AssemblyDefinition.ReadAssembly(args[1]);
