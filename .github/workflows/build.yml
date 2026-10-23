@@ -120,6 +120,16 @@ jobs:
           python3 -m pip install --user --quiet Pillow
           python3 tools/generate_qol_assets.py
           test $(find .build-refs/assets -name '*.rgba' | wc -l) -eq 11
+      - name: Research vanilla UI night-darkness pipeline
+        shell: bash
+        run: |
+          dotnet run --project tools/InspectGameApi.csproj -- --inspect-vanilla-ui-dimming "$RUNNER_TEMP/valheim-server/valheim_server_Data/Managed/assembly_valheim.dll" > vanilla-ui-dimming-il.txt
+          grep -E '^(### TYPE|FIELD|METHOD|GLOBAL SHADER)' vanilla-ui-dimming-il.txt | head -170 || true
+      - name: Upload vanilla UI dimming audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vanilla-UI-Dimming-IL
+          path: vanilla-ui-dimming-il.txt
       - name: Inspect recipe UI null references
         shell: bash
         run: |
