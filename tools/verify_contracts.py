@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 16, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.17"' in source["Plugin"]
+assert 'Version = "0.1.18"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -159,7 +159,7 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.17"
+assert manifest["version_number"] == "0.1.18"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
 
@@ -233,3 +233,17 @@ assert "RenderSettings" not in lighting
 assert "SetGlobalColor" not in lighting
 assert "SetGlobalFloat" not in lighting
 assert "Mathf.Lerp" not in lighting
+
+# Only the user's six 64px pixel assets receive gamma lift.
+# Scene/night dimming still runs exclusively through the native LitGui shader.
+art = (root / "tools/generate_qol_assets.py").read_text(encoding="utf-8")
+assert '"wood": 0.87, "favorite": 0.94' in art
+assert '.get(name, 0.90)' in art
+assert 'red.point(curve), green.point(curve), blue.point(curve), alpha' in art
+assert 'icon.getchannel("A").tobytes() == original_pixels[3::4]' in art
+assert 'after > before and after < before * 1.28' in art
+assert 'dfc004814b5c9d0a3b8d063034953eac3b18feb580db3342f7cf86c4664c7f54' in art
+assert 'Shader.Find(LitShaderName)' in source["QolNativeUiLighting"]
+assert 'LitShaderName = "Custom/LitGui"' in source["QolNativeUiLighting"]
+assert "Mathf.Lerp" not in source["QolNativeUiLighting"]
+assert 'Color.clear;' in source["QolStoreSort"]

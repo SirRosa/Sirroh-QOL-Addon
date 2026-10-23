@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.18
+- Brighten only the six user-supplied 64x64 UI image assets in the build pipeline: wooden tab texture (gamma 0.87), four action icons (gamma 0.90), Favorite star (gamma 0.94). Darker/midtone pixels receive a mild luminance boost, with no flattening of highlights or forced recoloring.
+- Original user pixel atlas SHA-256 verification remains intact; pixel alpha, dimensions and original source images are preserved exactly. CI asserts every visible asset receives a bounded luminance increase and the alpha channel is unchanged.
+- Keep native Custom/LitGui day/night shading, all layout and hover effects, and game mechanics unchanged.
+
 ## 0.1.17
 - Use the native Valheim `Custom/LitGui` material/shader for every visible QOL icon, wood tab and Favorite slot border. Reuse the inventory's existing shader material when possible.
 - The native EnvMan shader globals and LitGui GPU shading provide day/night and dark-area shading; there is no separate brightness tick, time interpolation or manual environment sampling in our mod.

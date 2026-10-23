@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.17 (test release)
+# Sirroh QOL Addon — 0.1.18 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 
@@ -135,3 +135,11 @@ Coordinates are converted to screen/Canvas space, scaling uniformly to other scr
 - Fully transparent clickable image surfaces remain on Unity's unlit UI shader, avoiding unnecessary draw/material changes. Visual highlight tint/colors remain independent and multiply through native LitGui lighting.
 - Lighting material discovery occurs once on UI creation/open and re-checks after the next frame to pick up dynamically initialized icons. No per-frame shader searches, no extra color polling.
 - Confirm in Valheim at daytime, sunset/night, inside caves and near artificial lights; actual native shader lighting response must be validated on the client.
+
+## v0.1.18 — artwork-only brightening (native LitGui unchanged)
+
+The user's night screenshot showed that the new side-rail tabs/icons looked darker than comparable vanilla UI. The *source graphics* are now gently lightened **before embedding** at build time with per-channel gamma curves: wood (0.87), Sort/Quickstack/Restock/Recycle (0.90), Favorite star (0.94). This lifts primarily dark and medium pixels, retaining highlights and each asset's color relationships, transparency and native 64×64 layout. The original lossless source atlas is untouched and SHA-256 verified.
+
+This is **not** a second lighting system: it does not alter `Custom/LitGui`, copy/modify Unity materials, change any shader parameters, adjust per-frame sprite tints, or detect darkness independently. Day/night fades continue to come entirely from Valheim. The embedded graphics are slightly brighter in all environments.
+
+The build reports before/after pixel brightness for each of the six assets and fails if alpha differs or the increase is excessive.
