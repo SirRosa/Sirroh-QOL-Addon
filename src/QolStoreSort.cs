@@ -33,10 +33,16 @@ namespace Sirroh.Qol
         private const float DesignWidth = 1920f;
         private const float DesignHeight = 1080f;
         private const float ActionX = 645f;
-        private const float RecycleY = 186.5f;
-        private const float SortY = 326.5f;
-        private const float QuickY = 384.5f;
-        private const float RestockY = 442.5f;
+        // Reference layout at 1920x1080: match the existing slim right-hand
+        // inventory rail beneath its shield and weight controls. Wood size
+        // tracks those tabs; artwork stays smaller than its clickable surface.
+        private const float RecycleY = 190f;
+        private const float SortY = 331f;
+        private const float QuickY = 396f;
+        private const float RestockY = 461f;
+        private const float ActionHitSize = 52f;
+        private const float ActionIconInset = 9f;
+        private const float RecycleHitSize = 54f;
 
         private static RectTransform _sort, _quick, _restock, _recycleWood, _actionsWood;
 
@@ -174,10 +180,11 @@ namespace Sirroh.Qol
             GameObject icon = new GameObject("Icon",typeof(RectTransform),typeof(Image));
             icon.transform.SetParent(go.transform,false);
             RectTransform iconRt = icon.GetComponent<RectTransform>();
+            // 34px icon inside a 52px hit target, no resizing of source PNG.
             iconRt.anchorMin = Vector2.zero;
             iconRt.anchorMax = Vector2.one;
-            iconRt.offsetMin = Vector2.zero;
-            iconRt.offsetMax = Vector2.zero;
+            iconRt.offsetMin = new Vector2(ActionIconInset, ActionIconInset);
+            iconRt.offsetMax = new Vector2(-ActionIconInset, -ActionIconInset);
             Image display = icon.GetComponent<Image>();
             display.sprite = sprite;
             display.preserveAspect = true;
@@ -281,16 +288,17 @@ namespace Sirroh.Qol
         private static void PositionActions(InventoryGui gui)
         {
             _screenWidth=Screen.width; _screenHeight=Screen.height;
-            PositionAt(_sort,ActionX,SortY,64f,64f);
-            PositionAt(_quick,ActionX,QuickY,64f,64f);
-            PositionAt(_restock,ActionX,RestockY,64f,64f);
-            // Button rects are 64px; image graphics fill the rect exactly.
-            PositionAt(_recycleWood,ActionX,RecycleY,84f,88f);
-            PositionAt(_actionsWood,ActionX,(SortY+RestockY)*.5f,84f,210f);
+            PositionAt(_sort,ActionX,SortY,ActionHitSize,ActionHitSize);
+            PositionAt(_quick,ActionX,QuickY,ActionHitSize,ActionHitSize);
+            PositionAt(_restock,ActionX,RestockY,ActionHitSize,ActionHitSize);
+            // Wooden tabs follow the dimensions of the game's weight/shield
+            // rail, not the full-size prototype (84x88 and 84x210).
+            PositionAt(_recycleWood,ActionX,RecycleY,60f,62f);
+            PositionAt(_actionsWood,ActionX,(SortY+RestockY)*.5f,60f,200f);
         }
 
         internal static void PositionRecycle(RectTransform rect) =>
-            PositionAt(rect,ActionX,RecycleY,64f,64f);
+            PositionAt(rect,ActionX,RecycleY,RecycleHitSize,RecycleHitSize);
 
         internal static void Tick()
         {
