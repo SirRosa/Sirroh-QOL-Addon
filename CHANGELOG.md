@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.20
+- Fix unreadably dark addon tabs/icons at night by calibrating Valheim's own `Custom/LitGui` `_Brightness` property, instead of further overexposing original PNG images. The shader explicitly supports independent _Brightness and _Lighting properties.
+- Clone the actual vanilla LitGui material exactly once per graphic category: wood uses 1.25x neutral brightness, glyphs/favorite borders use 2.40x. The original shared material remains untouched; no per-image material allocations.
+- Keep the game's native LitGui dynamic lighting and all environment shader globals intact. No custom time-of-day/brightness polling, no `_Lighting` overrides, no global shader changes.
+- Draw backgrounds with the wood variant and foreground symbols with the brighter glyph variant; leave transparent click hitboxes on UI/Default. Log original and addon shader brightness values for in-game diagnostics.
+- Preserve all 0.1.19 AzuAutoStore compatibility, performance optimizations, UI layout, Reclaim behavior, alpha and existing image assets.
+
 ## 0.1.19
 - Add soft AzuAutoStore 3.1.7 integration: configuration selects the Sirroh (default) or Azu manual QuickStack backend.
 - Suppress only the overlapping Azu manual store when Sirroh is selected; retain all native Azu automatic storage, configured container types and background collection.

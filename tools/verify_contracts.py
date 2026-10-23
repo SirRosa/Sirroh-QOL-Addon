@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 17, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.19"' in source["Plugin"]
+assert 'Version = "0.1.20"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -159,7 +159,7 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.19"
+assert manifest["version_number"] == "0.1.20"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
 
@@ -214,7 +214,27 @@ assert 'void Unhover()' not in ui
 # Native Valheim UI dimming: no duplicated EnvMan/time/ambient calculations.
 lighting = source["QolNativeUiLighting"]
 assert 'LitShaderName = "Custom/LitGui"' in lighting
-assert "FindLitMaterial(gui.m_player)" in lighting
+# Separate native LitGui brightness presets (only _Brightness changes).
+assert 'WoodBrightnessFactor = 1.25f' in lighting
+assert 'GlyphBrightnessFactor = 2.40f' in lighting
+assert 'Shader.PropertyToID("_Brightness")' in lighting
+assert "new Material(reference)" in lighting
+assert 'variant.SetFloat(BrightnessId, adjusted);' in lighting
+assert "Mathf.Max(original, 1f)" in lighting
+assert "Mathf.Clamp(" in lighting
+assert "ApplyImages(wood, true);" in lighting
+assert "ApplyImages(actions, false);" in lighting
+assert "ApplyImages(favorites, false);" in lighting
+assert "DestroyVariants();" in lighting
+assert 'void DestroyVariants()' in lighting
+assert '_nativeLitMaterial.SetFloat' not in lighting
+assert 'reference.SetFloat' not in lighting
+assert 'SetFloat("_Lighting"' not in lighting
+assert 'SetFloat("_Saturation"' not in lighting
+assert 'SetGlobal' not in lighting
+assert "Update()" not in lighting
+assert "EnvMan.instance" not in lighting
+assert 'FindLitMaterial(gui.m_player)' in lighting
 assert "FindLitMaterial(gui.transform)" in lighting
 assert "Shader.Find(LitShaderName)" in lighting
 assert 'image.material = material;' in lighting

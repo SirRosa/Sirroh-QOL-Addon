@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.19 (test release)
+# Sirroh QOL Addon — 0.1.20 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 
@@ -158,3 +158,11 @@ When the optional \`Azumatt.AzuAutoStore\` mod is installed, use
 - Without a compatible Azu installation the Sirroh backend is used, regardless of the preference. The external DLL is never required as a compile-time dependency.
 
 Recycle_N_Reclaim compatibility is **not** part of this update. Runtime behavior must be verified in a multiplayer world before treating this as a stable release.
+
+## v0.1.20 — correct native LitGui material brightness for readable nighttime UI
+
+The UI was still too dark despite earlier 0.1.18 art-only gamma correction. The problem was sharing the native **dark panel material preset** directly across **gold foreground icons** and **wood backgrounds**. Valheim's own `Custom/LitGui` shader includes both `_Brightness` and `_Lighting`; adjusting the former on **clones** can make our UI readable while preserving the latter and the game's changing day/night lighting.
+
+This release creates just two cached material variants by copying the vanilla LitGui material: wood uses `_Brightness` = 1.25 × max(1, native setting), gold icons (Recycle/Sort/Quickstack/Restock, Favorite, Store All and favorite borders) use 2.40 × max(1, native setting), capped at 4.0. These are fixed **material brightness calibrations, not a second lighting system**; Unity still applies Valheim's dynamic scene/dungeon lighting through the original shader. Vanilla materials, art pixels/alpha, colors, hitboxes, game mechanics and the AzuAutoStore compatibility module are unchanged.
+
+For diagnosis, BepInEx LogOutput shows: `QOL LitGui wood: native _Brightness=... QOL _Brightness=...` and `QOL LitGui glyphs: ...`. Compare the addon wood to vanilla shield/weight tabs and icon legibility at dusk/night and indoors. If the native shader is missing, the addon preserves existing UI material behavior and logs a warning rather than substituting a custom day/night formula.
