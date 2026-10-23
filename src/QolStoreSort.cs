@@ -10,10 +10,11 @@ using UnityEngine.UI;
 namespace Sirroh.Qol
 {
     /// <summary>
-    /// Precisely positioned, native-64px user icons, using the supplied
-    /// transparent 1920x1080 reference sheet. A separate wooden backplate is
-    /// drawn BEHIND the player's inventory. Favorite / Store All retain their
-    /// original Weight-anchor placement.
+    /// Compact attached side tabs. Their three rows fill the REAL gap between
+    /// the game's Weight tab and the bottom edge of the player inventory.
+    /// Separate wooden backplates are siblings behind m_player, with the same
+    /// rightmost edge as the vanilla shield/weight boards. Favorite and Store
+    /// All remain in their existing Weight-relative location.
     /// </summary>
     internal static class QolStoreSort
     {
@@ -37,14 +38,19 @@ namespace Sirroh.Qol
         // inventory rail beneath its shield and weight controls. Wood size
         // tracks those tabs; artwork stays smaller than its clickable surface.
         private const float RecycleY = 190f;
-        private const float SortY = 331f;
-        private const float QuickY = 396f;
-        private const float RestockY = 461f;
+        // Screenshot fallback. Runtime placement is taken from actual RectTransforms.
+        private const float SortY = 328f;
+        private const float QuickY = 385f;
+        private const float RestockY = 442f;
+        private const float DefaultRailRight = 684f;
+        private const float DefaultPanelBottom = 475f;
+        private const float DefaultWeightBottom = 300f;
         private const float ActionHitSize = 52f;
         private const float ActionIconInset = 9f;
         private const float RecycleHitSize = 54f;
 
-        private static RectTransform _sort, _quick, _restock, _recycleWood, _actionsWood;
+        private static RectTransform _sort, _quick, _restock;
+        private static RectTransform _recycleWood, _sortWood, _quickWood, _restockWood;
 
         internal static void Install(Plugin host)
         {
@@ -105,10 +111,13 @@ namespace Sirroh.Qol
             // The HUD must never capture clicks outside the icon rects.
             // This overlay has no Image or other raycast-capable component.
 
-            // Wood appears from behind the left edge of the inventory, with
-            // separate red-button and three-button sections as on the mockup.
+            // Each board is independent. The previous 200px high combined
+            // lower board hung below the player panel and did not match the
+            // native shield/weight tab widths.
             _recycleWood = MakeWood("ReclaimWoodTab");
-            _actionsWood = MakeWood("StackWoodTab");
+            _sortWood = MakeWood("SortWoodTab");
+            _quickWood = MakeWood("QuickstackWoodTab");
+            _restockWood = MakeWood("RestockWoodTab");
             _sort = MakeAction("Sort", QolFavorites.SortIcon, SortPlayer);
             _quick = MakeAction("Quickstack (Q)", QolFavorites.QuickIcon,
                 () => QolNearbyInventory.StartArea(true));
@@ -161,7 +170,10 @@ namespace Sirroh.Qol
             image.raycastTarget = false;
             image.preserveAspect = false;
             if (image.sprite != null) image.type = Image.Type.Sliced;
-            return go.GetComponent<RectTransform>();
+            RectTransform rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(.5f,.5f);
+            rt.pivot = new Vector2(.5f,.5f);
+            return rt;
         }
 
         private static RectTransform MakeAction(string name, Sprite sprite, Action command)
@@ -285,20 +297,132 @@ namespace Sirroh.Qol
                 designHeight*scale/canvasScale);
         }
 
-        private static void PositionActions(InventoryGui gui)
+        private static readonly Vector3[] Corners = new Vector3[4];
+        private static bool _warnedLayoutFallback;
+        private static Vector2 _recycleCenter;
+
+        private static Rect ScreenBounds(RectTransform rect)
         {
-            _screenWidth=Screen.width; _screenHeight=Screen.height;
-            PositionAt(_sort,ActionX,SortY,ActionHitSize,ActionHitSize);
-            PositionAt(_quick,ActionX,QuickY,ActionHitSize,ActionHitSize);
-            PositionAt(_restock,ActionX,RestockY,ActionHitSize,ActionHitSize);
-            // Wooden tabs follow the dimensions of the game's weight/shield
-            // rail, not the full-size prototype (84x88 and 84x210).
-            PositionAt(_recycleWood,ActionX,RecycleY,60f,62f);
-            PositionAt(_actionsWood,ActionX,(SortY+RestockY)*.5f,60f,200f);
+            rect.GetWorldCorners(Corners);
+            Vector2 lower = RectTransformUtility.WorldToScreenPoint(EventCamera,Corners[0]);
+            Vector2 upper = RectTransformUtility.WorldToScreenPoint(EventCamera,Corners[2]);
+            float xMin=Mathf.Min(lower.x,upper.x), xMax=Mathf.Max(lower.x,upper.x);
+            float yMin=Mathf.Min(lower.y,upper.y), yMax=Mathf.Max(lower.y,upper.y);
+            return Rect.MinMaxRect(xMin,yMin,xMax,yMax);
         }
 
-        internal static void PositionRecycle(RectTransform rect) =>
-            PositionAt(rect,ActionX,RecycleY,RecycleHitSize,RecycleHitSize);
+        private static void PositionScreen(RectTransform rect, Vector2 point,
+            float screenWidth, float screenHeight)
+        {
+            if(rect==null)return;
+            RectTransform parent=RootFor(rect);
+            if(parent==null)return;
+            // Anchors must be fixed to center, otherwise anchoredPosition
+            // can be offset by the parent's size and misplace the wood.
+            rect.anchorMin=rect.anchorMax=new Vector2(.5f,.5f);
+            rect.pivot=new Vector2(.5f,.5f);
+            Vector2 local;
+            if(RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                parent,point,EventCamera,out local))
+                rect.anchoredPosition=local;
+            float canvasScale=_canvas != null ? Mathf.Max(.01f,_canvas.scaleFactor) : 1f;
+            rect.sizeDelta=new Vector2(screenWidth/canvasScale,screenHeight/canvasScale);
+        }
+
+        private static void PositionActions(InventoryGui gui)
+        {
+            if(gui==null || gui.m_player==null)return;
+            _screenWidth=Screen.width; _screenHeight=Screen.height;
+            float scale=Mathf.Min(Screen.width/DesignWidth,Screen.height/DesignHeight);
+            float offsetX=(Screen.width-DesignWidth*scale)*.5f;
+            float offsetY=(Screen.height-DesignHeight*scale)*.5f;
+            float rightEdge=offsetX+DefaultRailRight*scale;
+            float playerBottom=offsetY+(DesignHeight-DefaultPanelBottom)*scale;
+            float weightBottom=offsetY+(DesignHeight-DefaultWeightBottom)*scale;
+            float nativeTabHeight=70f*scale;
+            bool dynamic=false;
+
+            RectTransform panel=gui.m_player as RectTransform;
+            RectTransform weight=gui.m_player.Find("Weight") as RectTransform;
+            if(panel!=null && weight!=null)
+            {
+                Rect inventory=ScreenBounds(panel);
+                Rect weightTab=ScreenBounds(weight);
+                // Some third-party UI mods use Weight as an icon instead of
+                // the backing bar. Reject that invalid measurement.
+                if(inventory.width>250f*scale &&
+                    inventory.height>250f*scale &&
+                    weightTab.width>35f*scale && weightTab.width<145f*scale &&
+                    weightTab.height>35f*scale && weightTab.height<145f*scale &&
+                    weightTab.xMax>inventory.xMax+12f*scale &&
+                    weightTab.xMax<inventory.xMax+160f*scale &&
+                    weightTab.yMin>inventory.yMin+95f*scale)
+                {
+                    rightEdge=weightTab.xMax;
+                    playerBottom=inventory.yMin;
+                    weightBottom=weightTab.yMin;
+                    nativeTabHeight=weightTab.height;
+                    dynamic=true;
+                }
+            }
+            if(!dynamic && !_warnedLayoutFallback)
+            {
+                _warnedLayoutFallback=true;
+                Plugin.Instance?.Log.LogWarning(
+                    "QOL icons: Weight/tab bounds not usable; using 1920x1080 proportional rail layout.");
+            }
+
+            // Native exposed right edge is the authority. Extend wood LEFT
+            // under the inventory (16px hidden), not a smaller tab floating
+            // in front of it. The reference screenshot rail is about 68px
+            // visible from the player frame to the end of the Weight tab.
+            float woodWidth=84f*scale;
+            if(dynamic && panel!=null)
+            {
+                Rect inventory=ScreenBounds(panel);
+                float exposed=rightEdge-inventory.xMax;
+                woodWidth=Mathf.Clamp(exposed+16f*scale,72f*scale,105f*scale);
+            }
+            float centerX=rightEdge-woodWidth*.5f;
+            float lower=playerBottom+4f*scale;
+            float upper=weightBottom-3f*scale;
+            float available=upper-lower;
+            // Never allow three wooden buttons to extend beyond the frame.
+            // If a replacement GUI leaves too little vertical space, use the
+            // conservative reference bounds and still keep the 3 boards inside.
+            if(available<105f*scale)
+            {
+                lower=offsetY+(DesignHeight-472f)*scale;
+                upper=offsetY+(DesignHeight-300f)*scale;
+                available=upper-lower;
+            }
+            float slot=available/3f;
+            float boardHeight=slot-1f*scale;
+            float iconHit=Mathf.Min(ActionHitSize*scale,slot-4f*scale);
+            float top=upper-slot*.5f;
+            float middle=upper-slot*1.5f;
+            float bottom=upper-slot*2.5f;
+            PositionScreen(_sort,new Vector2(centerX,top),iconHit,iconHit);
+            PositionScreen(_quick,new Vector2(centerX,middle),iconHit,iconHit);
+            PositionScreen(_restock,new Vector2(centerX,bottom),iconHit,iconHit);
+            PositionScreen(_sortWood,new Vector2(centerX,top),woodWidth,boardHeight);
+            PositionScreen(_quickWood,new Vector2(centerX,middle),woodWidth,boardHeight);
+            PositionScreen(_restockWood,new Vector2(centerX,bottom),woodWidth,boardHeight);
+
+            // Recycle remains immediately above Weight, like the existing
+            // native recycling bar. Preserve its position relative to Weight.
+            _recycleCenter=new Vector2(centerX,weightBottom+nativeTabHeight*.5f+3f*scale);
+            PositionScreen(_recycleWood,_recycleCenter,woodWidth,
+                Mathf.Min(70f*scale,nativeTabHeight));
+        }
+
+        internal static void PositionRecycle(RectTransform rect)
+        {
+            if(rect==null)return;
+            float scale=Mathf.Min(Screen.width/DesignWidth,Screen.height/DesignHeight);
+            float hit=RecycleHitSize*scale;
+            PositionScreen(rect,_recycleCenter,hit,hit);
+        }
 
         internal static void Tick()
         {
@@ -389,7 +513,8 @@ namespace Sirroh.Qol
             _overlayRect=null;_woodRect=null;_canvas=null;_gui=null;
             _favoriteButton=null;_favoriteImage=null;_storeButton=null;
             _hint=null;_sort=null;_quick=null;_restock=null;
-            _recycleWood=null;_actionsWood=null;
+            _recycleWood=null;_sortWood=null;_quickWood=null;_restockWood=null;
+            _warnedLayoutFallback=false; _recycleCenter=Vector2.zero;
         }
     }
 
