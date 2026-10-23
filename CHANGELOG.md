@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.22
+- Normalize Recycle button geometry to match Sort, Quickstack and Restock: identical 52x52 clickable area and 34x34 icon artwork, centered with 9px inset. The Recycle wooden background matches the other buttons' height, instead of following the taller 70px Weight tab. Keep right-edge alignment and its position above Weight.
+- Replace almost invisible 1px, alpha=.22 one-directional Unity UI Shadow with an outlined, warm-gold, four-sided highlight on the existing icon Image; alpha=.78, offset 1.6px, an 8% scale lift, and clearer warm icon tint on hover. Enabled only while pointer is over an icon. No extra animations, tooltips, polling or material allocations per frame.
+- Favorite retains its established bronze/gold state colors and lights up via the same hover outline; gameplay, native LitGui shading, AzuAutoStore compatibility and Quickstack/Reclaim logic unchanged.
+
 ## 0.1.21
 - Correct excessive v0.1.20 panel brightness: do not force the original Valheim `Custom/LitGui` `_Brightness` to 1 before calibration. Interpolate from the ACTUAL native material level toward the previous upper target by only 16% for wood and 40% for general glyphs. The previous high values remain only as upper reference points, not multipliers.
 - Favorite receives one separately cached LitGui material with a 62% blend and a brighter, muted bronze tint when inactive / pale gold when hovered or selected. Improves readability on the dark steel armor shield without turning wooden tabs into bright blocks.

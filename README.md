@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.21 (test release)
+# Sirroh QOL Addon — 0.1.22 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 
@@ -176,3 +176,9 @@ The correction **preserves the actual native `_Brightness` baseline** (even belo
 The Favorite star on the steel Armor shield has an additional warmer, brighter bronze tint (RGB 1.0 / .78 / .52) when inactive and soft gold (1.0 / .96 / .76) when hovered or selected. Clicking again returns to bronze when the pointer leaves. It uses its own cached LitGui material, avoiding changes to other icons or the vanilla UI.
 
 For troubleshooting, the BepInEx log records the actual native and addon _Brightness of wood, glyphs and favorite. These values allow fine adjustments to the game material instead of large guess-based PNG modifications. Source graphics, layout, hover glows, favorites behavior and Q/R/Reclaim mechanics are unchanged.
+
+## v0.1.22 — consistent Recycle button and visible hover effects
+
+**Recycle dimensions now match the three lower side rail actions:** 52×52 clickable rectangle, 9px inset on all sides resulting in a 34×34 visible icon. Its 9-sliced wood tab shares the same computed `boardHeight` as Sort, Quickstack and Restock, but remains above the native Weight panel. All 64×64 source assets are preserved.
+
+**Hover:** the previous tiny one-sided `Shadow` (1px offset, .22 opacity) was too faint under Valheim's nighttime lighting. Icons now use a pre-cached four-sided Unity UI `Outline` at 1.6px/78% alpha, a warmer golden image tint and an 8% icon-only scale lift while hovered. Every control remains the same size for hit-testing, with transparent backgrounds and no hover text; click/drag/favorite interactions are unchanged. `Outline.enabled` toggles only on enter/exit, keeping CPU and GC overhead negligible. Native `Custom/LitGui` day/night shading is untouched.

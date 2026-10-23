@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 17, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.21"' in source["Plugin"]
+assert 'Version = "0.1.22"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -129,7 +129,7 @@ assert centers_top[-1] + (slot-1)/2 <= 475 - 3, centers_top
 assert (684 - (84/2) + 84/2) == 684
 assert "private const float ActionHitSize = 52f" in source["QolStoreSort"]
 assert "ActionIconInset = 9f" in source["QolStoreSort"]
-assert "new Vector2(8f,8f)" in source["QolTrashReclaim"]
+assert "new Vector2(9f,9f)" in source["QolTrashReclaim"]
 assert "private static string PrefabId" in source["QolTrashReclaim"]
 assert "db.GetRecipe(item)" in source["QolTrashReclaim"]
 assert "Recipe prefabMatch = null" in source["QolTrashReclaim"]
@@ -159,7 +159,7 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.21"
+assert manifest["version_number"] == "0.1.22"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
 
@@ -200,8 +200,14 @@ assert 'hover.Initialize(image, false);' in trash
 assert 'private bool _hovered;' in ui
 assert 'bool gold = _hovered || QolFavorites.FavoriteMode;' in ui
 assert '_favoriteHover.Refresh();' in ui
-assert '_graphic.gameObject.AddComponent<Shadow>()' in ui
-assert '_glow.enabled = _hovered;' in ui
+assert '_graphic.gameObject.AddComponent<Outline>()' in ui
+assert '_outline.enabled = _hovered;' in ui
+assert 'new Color(1f, .80f, .43f, .78f)' in ui
+assert 'new Vector2(1.6f, 1.6f)' in ui
+assert '_normalScale * 1.08f' in ui
+assert 'new Color(1f, .96f, .73f, 1f)' in ui
+assert 'AddComponent<Shadow>()' not in ui
+assert 'AddComponent<Outline>()' in ui
 assert 'new Color(1f, .78f, .52f, 1f)' in ui
 assert 'new Color(1f, .96f, .76f, 1f)' in ui
 assert 'void OnPointerEnter(PointerEventData eventData)' in ui
@@ -305,3 +311,23 @@ assert '_lastNativeDispatchFrame' in azu
 assert 'DuplicateFavoriteBorders' in azu
 assert 'BeforeAzuBorderDraw' in azu
 assert 'AzuAutoStoreFavoritingBorder' in source["QolFavorites"]
+
+# All four right-side QOL buttons match in clickable area, image inset
+# and wooden backing height. Their offsets and positions are unchanged.
+ui = source["QolStoreSort"]
+trash = source["QolTrashReclaim"]
+assert "private const float ActionHitSize = 52f;" in ui
+assert "private const float RecycleHitSize = ActionHitSize;" in ui
+assert "PositionScreen(_recycleWood,_recycleCenter,woodWidth,boardHeight);" in ui
+assert "PositionScreen(_sortWood,new Vector2(centerX,top),woodWidth,boardHeight);" in ui
+assert "PositionScreen(_quickWood,new Vector2(centerX,middle),woodWidth,boardHeight);" in ui
+assert "PositionScreen(_restockWood,new Vector2(centerX,bottom),woodWidth,boardHeight);" in ui
+assert "_buttonRect.sizeDelta = new Vector2(52f,52f);" in trash
+assert "new Vector2(9f,9f)" in trash
+assert "new Vector2(-9f,-9f)" in trash
+assert "ActionIconInset = 9f" in ui
+assert "VisibleRailInset = 6f" in ui
+assert "bool gold = _hovered || QolFavorites.FavoriteMode;" in ui
+assert "SirrohQOLTooltip" not in ui
+assert "_graphic.rectTransform.localScale =" in ui
+assert "Refresh();" in ui
