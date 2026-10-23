@@ -69,6 +69,8 @@ namespace Sirroh.Qol
             if (_woodRoot != null) _woodRoot.SetActive(true);
             if (_favoritePanel != null) _favoritePanel.SetActive(true);
             Align(__instance);
+            // Reuse the native shader; do not run a parallel day/night timer.
+            QolNativeUiLighting.Sync(__instance, _woodRoot, _overlay, _favoritePanel);
             if (Plugin.Instance != null)
                 Plugin.Instance.StartCoroutine(NextFramePosition(__instance));
         }
@@ -235,6 +237,9 @@ namespace Sirroh.Qol
             {
                 Align(gui);
                 QolTrashReclaim.Align(gui);
+                // QolTrashReclaim and vanilla inventory borders can be
+                // constructed by different Show/UpdateGui patch priorities.
+                QolNativeUiLighting.Sync(gui, _woodRoot, _overlay, _favoritePanel);
             }
         }
 

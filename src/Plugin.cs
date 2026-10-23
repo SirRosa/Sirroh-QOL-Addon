@@ -12,7 +12,7 @@ namespace Sirroh.Qol
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "sirro.valheim.qoladdon";
-        public const string Version = "0.1.16";
+        public const string Version = "0.1.17";
         internal static Plugin Instance;
         internal ManualLogSource Log => Logger;
         private Harmony _harmony;
@@ -103,6 +103,7 @@ namespace Sirroh.Qol
         {
             StopAllCoroutines();
             try { QolStoreSort.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
+            try { QolNativeUiLighting.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { QolNearbyInventory.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { QolTrashReclaim.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { QolFavorites.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }

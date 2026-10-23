@@ -139,6 +139,7 @@ namespace Sirroh.Qol
                     overlay = go.GetComponent<Image>();
                     overlay.sprite = _border;
                     overlay.raycastTarget = false;
+                    QolNativeUiLighting.Apply(overlay);
                     overlay.color = new Color(1f, 0.75f, 0.13f, 0.95f);
                 }
                 ItemDrop.ItemData item = ___m_inventory.GetItemAt(index % width, index / width);

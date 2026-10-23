@@ -83,6 +83,7 @@ namespace Sirroh.Qol
             Image image = icon.GetComponent<Image>();
             image.sprite = QolFavorites.RecycleIcon;
             image.preserveAspect = true;
+            QolNativeUiLighting.Apply(image);
             image.raycastTarget = false;
             QolIconHover hover = _buttonObject.AddComponent<QolIconHover>();
             hover.Initialize(image, false);
