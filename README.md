@@ -1,6 +1,6 @@
 # Sirroh QOL Addon — 0.1.12 (test release)
 
-One BepInEx DLL with six configurable features plus skill-scaled Build Camera for **Sirroh Overhaul 0.22.65+** on Valheim 1.0.
+One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 
 | Module | Behavior | Safety |
 | --- | --- | --- |
@@ -17,10 +17,7 @@ Glowing Signs settings: `EmissionIntensity` (default 1.75), `GlowStrength` (defa
 ## Requirements
 
 - Valheim 1.0; BepInExPack 5.4.2351.
-- Sirroh Overhaul **0.22.65 or later** installed (BepInEx dependency GUID `sirro.valheim.pracafizyczna`).
-- Do not simultaneously load the five old reference mods; they are not required.
-
-The five original QOL mods and the swimming-equipment reference in `Sirroh-Compatibility-Builder` were consulted as **behavioral soft references only**. This project contains new code, not embedded copies of their DLLs.
+- Required BepInEx dependency GUID: `sirro.valheim.pracafizyczna` (version 0.22.65 or later).
 
 ## Test cases
 
@@ -41,7 +38,7 @@ Swimming equipment is **always on**, with no configuration, restrictions or blac
 
 The previous v0.1.3 attempt patched `Character.IsSwimming` using a thread-local flag only during two Humanoid methods. In Valheim 1.0, the game also guards **restoring hidden items** in `Player.Update`, leaving equipment stowed. v0.1.5 changes only the three relevant calls to `IsSwimming` inside those game methods. Swimming movement, physics and stamina still use normal `IsSwimming`.
 
-If upgrading from 0.1.3, `06 Swimming Equipment` options in old BepInEx configuration files are ignored. No new keys are created. Do not install the original WieldEquipmentWhileSwimming alongside this addon. In-game validation is required.
+If upgrading from 0.1.3, `06 Swimming Equipment` options in old BepInEx configuration files are ignored. No new keys are created. In-game validation is required.
 
 ## Build Camera — Construction-based (v0.1.6)
 - Press **B** to enter or leave free camera mode, without requiring a hammer. Tool/hotbar swaps retain free camera.
@@ -72,11 +69,11 @@ Valheim sectors measure 64m. On the standard network simulation distance near=2,
 
 - **Q** — move all eligible non-hotbar, non-favorited stackable items to accessible chests within **100 m**, but only into chests already containing that kind of item.
 - **R** — fill existing non-hotbar incomplete stacks from accessible chests within **100 m**; never creates new item types in inventory, never removes hotbar contents.
-- **Favorites** — hold **LeftAlt** and left-click an item in the player inventory to toggle favoriting the item type; hold **LeftAlt** and right-click a slot to toggle favoriting the slot. Both protect from Quickstack and Trash, indicated by the original gold/blue QuickStack border sprite. Preferences persist per player in BepInEx config as text (replaces BinaryFormatter).
+- **Favorites** — hold **LeftAlt** and left-click an item in the player inventory to toggle favoriting the item type; hold **LeftAlt** and right-click a slot to toggle favoriting the slot. Both protect from Quickstack and Trash, indicated by a gold/blue inventory border. Preferences persist per player in BepInEx config as text (replaces BinaryFormatter).
 - **Trash / Reclaim** — drag an item to a single icon in your inventory. When a valid crafting recipe exists and cumulative inventory slots and carrying capacity suffice, full ingredient yield including upgrades is returned. No separate reclaim button in chests. If the item has no recoverable recipe, a Polish **Tak/Nie** modal confirms deletion. When a reclaimable item doesn't fit, nothing is deleted; the operation is refused.
-- The original 5 PNG assets (QuickStack border / trash / trash mask and Reclaim border / recycling panel) are embedded in one DLL. No separate asset files or mod DLLs required.
+- Five inventory UI PNG assets (favorite border, trash icon and mask, reclaim border, recycling panel) are embedded in one DLL. No separate asset files are required.
 - Loaded, accessible chests are acquired via vanilla ZNetView ownership and processed in bounded batches. Avoids continuous world scans and preserves private/ward access.
-- Both hotkeys are intentionally fixed, without extra configuration. **Remove the original Recycle_N_Reclaim and QuickStackStore DLLs** to prevent competing Harmony hooks.
+- Both hotkeys are intentionally fixed, without extra configuration.
 
 **Critical in-game QA:** Q/R near multiple accessible and private chests; large inventories, hotbar, favorite items and slots; source stack partial counts; reclaim quality upgrades; full inventory rejection; Tak/nie non-recyclable item; multiplayer ownership and ward rules. All untested gameplay behavior must be validated before treating this as a stable release.
 
@@ -84,17 +81,17 @@ Valheim sectors measure 64m. On the standard network simulation distance near=2,
 - Unlike Quickstack, Restock may refill an existing hotbar stack; nothing is *taken away* from the hotbar.
 
 ## v0.1.10 UI and performance pass
-- New supplied icons physically resampled: Sort/Favorite/Quickstack/Restock **32×32**, Recycle **48×48**. On-screen sizes: **21×21** within 26×26 mini buttons, Recycle **31×31** inside a 38×38 drop/click target. All alpha is retained. The original five mod textures are still included in the DLL.
-- Anchored like QuickStackStore under the player's **Weight** block (not a 380px button strip). Icons: Sort, Quickstack, Restock, Favorite mode, context-only Store All (Quickstack icon with A overlay); compact Recycle icon beside the row. Tooltips appear only on hover; Favorite toggles Alt-like favoriting mode.
+- New supplied icons physically resampled: Sort/Favorite/Quickstack/Restock **32×32**, Recycle **48×48**. On-screen sizes: **21×21** within 26×26 mini buttons, Recycle **31×31** inside a 38×38 drop/click target. All alpha is retained. Five UI textures are included in the DLL.
+- Anchored under the player's **Weight** block (not a 380px button strip). Icons: Sort, Quickstack, Restock, Favorite mode, context-only Store All (Quickstack icon with A overlay); compact Recycle icon beside the row. Tooltips appear only on hover; Favorite toggles Alt-like favoriting mode.
 - Chest selection uses a **32m spatial hash**, limiting searches to neighboring loaded cells within 100m. No per-command global chest scan or sorting. Chests are indexed by item type before expensive ownership RPCs; only relevant chests may be claimed.
 - Restock uses pooled item lists by type, built once per chest (instead of repeated chest inventory scans per player item). Transfers are spread across frames with a **2ms cooperative budget**. Every loaded eligible chest within 100m is processed; no arbitrary 128-chest cutoff. Multiplayer permissions and wards remain checked before mutation.
-- In-game checking remains necessary for performance and UI collision with the user's other modded overlays. Track console log/errors, a dense chest room, multiplayer and small/large inventory interactions.
+- In-game checking remains necessary for performance and potential UI overlap. Track console log/errors, a dense chest room, multiplayer and small/large inventory interactions.
 
 ## v0.1.11 Inventory UI startup fixes
 - Corrected the QolStoreSort Show Harmony postfix injection parameter from `gui` to `__instance`. The incorrect parameter prevented Harmony from installing the icon toolbar hook.
-- Added guarded recipe-list validation before vanilla `InventoryGui.UpdateRecipeList`: skips only invalid/null recipe entries **for display only**; does not modify global ObjectDB crafting recipe sources, crafting recipes, or ingredients. Repairs missing temporary UI lists. If a third-party inventory replacement lacks the recipe list root, it emits an explicit warning and skips only that list update rather than crashing the entire inventory UI.
+- Added guarded recipe-list validation before vanilla `InventoryGui.UpdateRecipeList`: skips only invalid/null recipe entries **for display only**; does not modify global ObjectDB crafting recipe sources, crafting recipes, or ingredients. Repairs missing temporary UI lists. If the inventory UI lacks the recipe list root, it emits an explicit warning and skips only that list update rather than crashing the entire inventory UI.
 - Five custom supplied icons remain embedded at 32x32 (Recycle 48x48). Chest operations, skill scaling and earlier gameplay modules remain unchanged.
-- Diagnose in BepInEx LogOutput.log via `RecipeListSafety:` if crafting panel still does not appear; UI layout from other mods is resolved only when compatible root exists.
+- Diagnose in BepInEx LogOutput.log via `RecipeListSafety:` if crafting panel still does not appear; UI layout updates occur only when a compatible root exists.
 
 ## v0.1.12 — exact 1920×1080 inventory placement and new sprites
 
