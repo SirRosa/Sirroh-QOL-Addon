@@ -75,8 +75,9 @@ namespace Sirroh.Qol
             iconRt.anchorMin = iconRt.anchorMax = new Vector2(.5f,.5f);
             iconRt.anchorMin=Vector2.zero;
             iconRt.anchorMax=Vector2.one;
-            iconRt.offsetMin=Vector2.zero;
-            iconRt.offsetMax=Vector2.zero;
+            // 38px Recycle image inside a 54px target.
+            iconRt.offsetMin=new Vector2(8f,8f);
+            iconRt.offsetMax=new Vector2(-8f,-8f);
             iconRt.anchoredPosition = Vector2.zero;
             Image image = icon.GetComponent<Image>();
             image.sprite = QolFavorites.RecycleIcon;
@@ -115,7 +116,15 @@ namespace Sirroh.Qol
             // Detach UI drag only after taking stable references.
             QolGameAccess.ClearDrag(gui);
             ReclaimResult result = TryReclaim(item, from, count);
-            if (result == ReclaimResult.Unsupported) ShowConfirmation(item, from, count);
+            if (result == ReclaimResult.Unsupported)
+            {
+                _host?.Log.LogWarning("TrashReclaim: no usable recipe for prefab '" +
+                    (item.m_dropPrefab != null ? item.m_dropPrefab.name : "(null)") +
+                    "', shared '" + item.m_shared.m_name + "', quality " + item.m_quality +
+                    ", custom fields " + (item.m_customData?.Count ?? 0) +
+                    ". Only the explicit delete confirmation is offered.");
+                ShowConfirmation(item, from, count);
+            }
             else if (result == ReclaimResult.Full)
                 Message("Brak miejsca w ekwipunku na odzyskane materiały.");
             else if (result == ReclaimResult.Error)
@@ -151,11 +160,10 @@ namespace Sirroh.Qol
         {
             Player player = Player.m_localPlayer;
             Inventory inventory = player.GetInventory();
-            // Enchanted/custom-data items need a provider-specific refund.
-            // Treat them as unsupported instead of silently losing sockets,
-            // enchantment investment, or unique instance metadata.
-            if (item.m_customData != null && item.m_customData.Count > 0)
-                return ReclaimResult.Unsupported;
+            // Modded armor (including leggings) often has m_customData even
+            // when made by an ordinary recipe. It MUST NOT be mistaken for
+            // an item without a crafting recipe. Base ingredients can still
+            // be recovered. Mod-specific enchantment costs are separate.
             Recipe recipe = FindRecipe(item);
             if (recipe == null || recipe.m_resources == null || recipe.m_resources.Length == 0 ||
                 recipe.m_amount < 1 || count % recipe.m_amount != 0)
@@ -233,7 +241,7 @@ namespace Sirroh.Qol
                     UndoReceived(inventory, received);
                     return ReclaimResult.Error;
                 }
-                Message("Odzyskano 100% materiałów z przedmiotu.");
+                Message("Odzyskano 100% materiałów z receptury przedmiotu.");
                 return ReclaimResult.Reclaimed;
             }
             catch (Exception e)
@@ -251,20 +259,65 @@ namespace Sirroh.Qol
             _host?.Log.LogWarning("TrashReclaim: rolled back resource returns after insertion failure.");
         }
 
+        // Compare prefab identity FIRST. Display names are often duplicated
+        // or replaced by armor/enchantment/localization mods.
+        private static string PrefabId(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return null;
+            string id = name.Trim();
+            const string clone = "(Clone)";
+            if (id.EndsWith(clone, StringComparison.Ordinal))
+                id = id.Substring(0,id.Length-clone.Length).TrimEnd();
+            return id;
+        }
+
+        private static bool HasResources(Recipe recipe)
+        {
+            return recipe != null && recipe.m_item != null &&
+                recipe.m_item.m_itemData != null && recipe.m_amount > 0 &&
+                recipe.m_resources != null && recipe.m_resources.Length > 0;
+        }
+
         private static Recipe FindRecipe(ItemDrop.ItemData item)
         {
             ObjectDB db = ObjectDB.instance;
-            if (db == null || db.m_recipes == null) return null;
-            Recipe best = null;
+            if (db == null || db.m_recipes == null || item == null ||
+                item.m_shared == null) return null;
+            string targetPrefab = item.m_dropPrefab != null
+                ? PrefabId(item.m_dropPrefab.name) : null;
+            Recipe prefabMatch = null, sharedNameMatch = null;
             foreach (Recipe recipe in db.m_recipes)
             {
-                if (recipe == null || recipe.m_item == null ||
-                    recipe.m_item.m_itemData?.m_shared == null ||
-                    recipe.m_item.m_itemData.m_shared.m_name != item.m_shared.m_name) continue;
-                if (recipe.m_resources == null || recipe.m_resources.Length == 0) continue;
-                if (best == null || recipe.m_amount < best.m_amount) best = recipe;
+                if (!HasResources(recipe)) continue;
+                string candidate = PrefabId(recipe.m_item.gameObject.name);
+                bool samePrefab = targetPrefab != null &&
+                    string.Equals(candidate,targetPrefab,StringComparison.Ordinal);
+                if (samePrefab)
+                {
+                    if (prefabMatch == null || recipe.m_amount < prefabMatch.m_amount)
+                        prefabMatch = recipe;
+                    continue;
+                }
+                // Last resort for items whose dropPrefab is unavailable.
+                if (recipe.m_item.m_itemData.m_shared != null &&
+                    recipe.m_item.m_itemData.m_shared.m_name == item.m_shared.m_name &&
+                    (sharedNameMatch == null || recipe.m_amount < sharedNameMatch.m_amount))
+                    sharedNameMatch = recipe;
             }
-            return best;
+            if (prefabMatch != null) return prefabMatch;
+
+            // ObjectDB uses its own registered recipe lookup for some modded
+            // items that aren't discoverable by prefab name.
+            try
+            {
+                Recipe fromDb = db.GetRecipe(item);
+                if (HasResources(fromDb)) return fromDb;
+            }
+            catch (Exception ex)
+            {
+                _host?.Log.LogDebug("TrashReclaim: ObjectDB.GetRecipe fallback: "+ex.Message);
+            }
+            return sharedNameMatch;
         }
 
         private static void ShowConfirmation(ItemDrop.ItemData item, Inventory source, int amount)
