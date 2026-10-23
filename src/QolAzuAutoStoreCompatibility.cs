@@ -20,10 +20,15 @@ namespace Sirroh.Qol
         private static Action _azuManualStore;
         private static Func<long, object> _getPlayerConfig;
         private static Func<object, ItemDrop.ItemData, bool> _azuFavorite;
+        private static Func<object, Vector2i, bool> _azuSlotFavorite;
+        private static MethodInfo _azuNameFavorite;
+        private static MethodInfo _azuToggleName;
+        private static MethodInfo _azuToggleSlot;
         private static long _cachedPlayerId = long.MinValue;
         private static object _cachedConfig;
         private static bool _callingFromSirroh;
         private static int _lastSirrohDispatchFrame = -1;
+        private static int _lastNativeDispatchFrame = -1;
 
         internal static bool UseAzuQuickStack =>
             _detected && _azuManualStore != null && _host != null &&
@@ -84,6 +89,19 @@ namespace Sirroh.Qol
                     _host.Patch("AzuAutoStore.Favorites", check,
                         postfix: AccessTools.Method(typeof(QolAzuAutoStoreCompatibility),
                             nameof(AfterAzuFavoriteCheck)), priority: Priority.Last);
+                    MethodInfo slotCheck = AccessTools.Method(favorites,
+                        "IsSlotFavorited", new[] { typeof(Vector2i) });
+                    _azuNameFavorite = AccessTools.Method(favorites, "IsItemNameFavorited");
+                    _azuToggleName = AccessTools.Method(favorites, "ToggleItemNameFavoriting");
+                    _azuToggleSlot = AccessTools.Method(favorites,
+                        "ToggleSlotFavoriting", new[] { typeof(Vector2i) });
+                    if (slotCheck != null)
+                    {
+                        ParameterExpression slot = Expression.Parameter(typeof(Vector2i), "slot");
+                        _azuSlotFavorite = Expression.Lambda<Func<object, Vector2i, bool>>(
+                            Expression.Call(Expression.Convert(config, favorites), slotCheck, slot),
+                            config, slot).Compile();
+                    }
                 }
                 else _host.Log.LogWarning("AzuAutoStore: favorite API unavailable; favorite integration skipped.");
 
@@ -106,13 +124,17 @@ namespace Sirroh.Qol
             if (!UseAzuQuickStack) return false; // Sirroh selected: suppress overlapping Azu hotkey.
             // If the user mapped Azu's manual shortcut to Q, Sirroh Q owns the
             // request. Preserve Azu's independent shortcut on other keys.
-            return !Input.GetKeyDown(KeyCode.Q) && _lastSirrohDispatchFrame != Time.frameCount;
+            if (Input.GetKeyDown(KeyCode.Q) || _lastSirrohDispatchFrame == Time.frameCount)
+                return false;
+            _lastNativeDispatchFrame = Time.frameCount;
+            return true;
         }
 
         internal static bool DispatchQuickStack()
         {
             if (!UseAzuQuickStack) return false;
-            if (_lastSirrohDispatchFrame == Time.frameCount) return true;
+            if (_lastSirrohDispatchFrame == Time.frameCount ||
+                _lastNativeDispatchFrame == Time.frameCount) return true;
             _lastSirrohDispatchFrame = Time.frameCount;
             _callingFromSirroh = true;
             try
@@ -137,20 +159,92 @@ namespace Sirroh.Qol
                 __result = true;
         }
 
+
+        private static object PlayerFavorites(Inventory inventory)
+        {
+            if (_getPlayerConfig == null || Player.m_localPlayer == null ||
+                inventory == null || inventory != Player.m_localPlayer.GetInventory()) return null;
+            long uid = Player.m_localPlayer.GetPlayerID();
+            if (_cachedConfig == null || _cachedPlayerId != uid)
+            {
+                _cachedConfig = _getPlayerConfig(uid);
+                _cachedPlayerId = uid;
+            }
+            return _cachedConfig;
+        }
+
+        internal static bool IsAzuSlotFavorite(Vector2i slot, Inventory inventory)
+        {
+            if (_azuSlotFavorite == null) return false;
+            try
+            {
+                object config = PlayerFavorites(inventory);
+                return config != null && _azuSlotFavorite(config, slot);
+            }
+            catch (Exception error)
+            {
+                _host?.Log.LogWarning("Azu slot favorite check unavailable: " + error.Message);
+                _azuSlotFavorite = null;
+                return false;
+            }
+        }
+
+        internal static bool IsAzuNameFavorite(ItemDrop.ItemData item, Inventory inventory)
+        {
+            if (_azuNameFavorite == null || item == null) return false;
+            try
+            {
+                object config = PlayerFavorites(inventory);
+                return config != null && (bool)_azuNameFavorite.Invoke(config, new object[] { item.m_shared });
+            }
+            catch (Exception error)
+            {
+                _host?.Log.LogWarning("Azu name favorite check unavailable: " + error.Message);
+                _azuNameFavorite = null;
+                return false;
+            }
+        }
+
+        // Use Azu's own public API on explicit user clicks, not its binary save format.
+        internal static void SetAzuNameFavorite(ItemDrop.ItemData item, Inventory inventory, bool selected)
+        {
+            if (_azuToggleName == null || item == null) return;
+            try
+            {
+                object config = PlayerFavorites(inventory);
+                if (config != null && IsAzuNameFavorite(item, inventory) != selected)
+                    _azuToggleName.Invoke(config, new object[] { item.m_shared });
+            }
+            catch (Exception error)
+            {
+                _host?.Log.LogWarning("Azu name favorite update unavailable: " + error.Message);
+            }
+        }
+
+        internal static void SetAzuSlotFavorite(Vector2i slot, Inventory inventory, bool selected)
+        {
+            if (_azuToggleSlot == null || _azuSlotFavorite == null) return;
+            try
+            {
+                object config = PlayerFavorites(inventory);
+                if (config != null && _azuSlotFavorite(config, slot) != selected)
+                    _azuToggleSlot.Invoke(config, new object[] { slot });
+            }
+            catch (Exception error)
+            {
+                _host?.Log.LogWarning("Azu slot favorite update unavailable: " + error.Message);
+            }
+        }
+
         internal static bool IsAzuFavorite(ItemDrop.ItemData item, Inventory inventory)
         {
             if (_azuFavorite == null || _getPlayerConfig == null || item == null ||
                 inventory == null || Player.m_localPlayer == null ||
                 inventory != Player.m_localPlayer.GetInventory()) return false;
-            long uid = Player.m_localPlayer.GetPlayerID();
             try
             {
-                if (_cachedConfig == null || _cachedPlayerId != uid)
-                {
-                    _cachedPlayerId = uid;
-                    _cachedConfig = _getPlayerConfig(uid);
-                }
-                return _cachedConfig != null && _azuFavorite(_cachedConfig, item);
+                object config = PlayerFavorites(inventory);
+                return config != null && _azuFavorite(config, item);
             }
             catch (Exception error)
             {
@@ -169,10 +263,15 @@ namespace Sirroh.Qol
             _azuManualStore = null;
             _azuFavorite = null;
             _getPlayerConfig = null;
+            _azuSlotFavorite = null;
+            _azuNameFavorite = null;
+            _azuToggleName = null;
+            _azuToggleSlot = null;
             _cachedConfig = null;
             _cachedPlayerId = long.MinValue;
             _callingFromSirroh = false;
             _lastSirrohDispatchFrame = -1;
+            _lastNativeDispatchFrame = -1;
         }
     }
 }

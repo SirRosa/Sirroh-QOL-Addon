@@ -265,3 +265,10 @@ assert 'QolAzuAutoStoreCompatibility.UseAzuQuickStack' in source["QolNearbyInven
 assert 'IsSirrohFavoriteForAzu' in source["QolFavorites"]
 assert 'QolAzuAutoStoreCompatibility.IsAzuFavorite(item, inv)' in source["QolFavorites"]
 assert 'QolAzuAutoStoreCompatibility.IsAzuFavorite(item, ___m_inventory)' in source["QolFavorites"]
+
+assert 'IsAzuSlotFavorite(pos, inv)' in source["QolFavorites"]
+assert 'SetAzuSlotFavorite(pos, inv, !wasFavorite)' in source["QolFavorites"]
+assert 'SetAzuNameFavorite(item, inv, !wasFavorite)' in source["QolFavorites"]
+assert 'IsAzuSlotFavorite(new Vector2i(index % width, index / width)' not in source["QolFavorites"]
+assert 'bool slot = IsFavoriteSlot(new Vector2i(index % width, index / width), ___m_inventory);' in source["QolFavorites"]
+assert '_lastNativeDispatchFrame' in azu

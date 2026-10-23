@@ -75,7 +75,12 @@ namespace Sirroh.Qol
             ItemDrop.ItemData item = QolGameAccess.Inventory(__instance).GetItemAt(pos.x, pos.y);
             if (item == null || item.m_shared == null) return true;
             Ensure();
-            if (!Names.Add(item.m_shared.m_name)) Names.Remove(item.m_shared.m_name);
+            Inventory inv = QolGameAccess.Inventory(__instance);
+            bool wasFavorite = Names.Contains(item.m_shared.m_name) ||
+                QolAzuAutoStoreCompatibility.IsAzuNameFavorite(item, inv);
+            if (wasFavorite) Names.Remove(item.m_shared.m_name);
+            else Names.Add(item.m_shared.m_name);
+            QolAzuAutoStoreCompatibility.SetAzuNameFavorite(item, inv, !wasFavorite);
             Save();
             return false;
         }
@@ -87,7 +92,12 @@ namespace Sirroh.Qol
             if (pos.x < 0 || pos.y < 0) return true;
             Ensure();
             int key = pos.y * QolGameAccess.Inventory(__instance).GetWidth() + pos.x;
-            if (!Slots.Add(key)) Slots.Remove(key);
+            Inventory inv = QolGameAccess.Inventory(__instance);
+            bool wasFavorite = Slots.Contains(key) ||
+                QolAzuAutoStoreCompatibility.IsAzuSlotFavorite(pos, inv);
+            if (wasFavorite) Slots.Remove(key);
+            else Slots.Add(key);
+            QolAzuAutoStoreCompatibility.SetAzuSlotFavorite(pos, inv, !wasFavorite);
             Save();
             return false;
         }
@@ -121,7 +131,8 @@ namespace Sirroh.Qol
         internal static bool IsFavoriteSlot(Vector2i pos, Inventory inv)
         {
             Ensure();
-            return inv != null && Slots.Contains(pos.y * inv.GetWidth() + pos.x);
+            return inv != null && (Slots.Contains(pos.y * inv.GetWidth() + pos.x) ||
+                QolAzuAutoStoreCompatibility.IsAzuSlotFavorite(pos, inv));
         }
 
         internal static bool IsNameFavorite(ItemDrop.ItemData item)
@@ -161,7 +172,8 @@ namespace Sirroh.Qol
                     overlay.color = new Color(1f, 0.75f, 0.13f, 0.95f);
                 }
                 ItemDrop.ItemData item = ___m_inventory.GetItemAt(index % width, index / width);
-                bool slot = Slots.Contains(index);
+                // Empty favorite slots from Azu must also stay fixed during Sirroh Sort.
+                bool slot = IsFavoriteSlot(new Vector2i(index % width, index / width), ___m_inventory);
                 bool name = item != null && item.m_shared != null && Names.Contains(item.m_shared.m_name);
                 // Display favorites from either provider using the same Sirroh border.
                 bool azu = item != null && QolAzuAutoStoreCompatibility.IsAzuFavorite(item, ___m_inventory);
