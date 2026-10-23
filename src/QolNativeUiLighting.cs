@@ -27,8 +27,18 @@ namespace Sirroh.Qol
                 if (image == null) continue;
                 // Do not choose our own addon images: their material may
                 // have been bound on a previous InventoryGui.Show.
-                if (image.gameObject.name.StartsWith("Sirroh", StringComparison.Ordinal))
-                    continue;
+                bool ourImage = false;
+                Transform node = image.transform;
+                while (node != null && node != searchRoot)
+                {
+                    if (node.gameObject.name.StartsWith("Sirroh", StringComparison.Ordinal))
+                    {
+                        ourImage = true;
+                        break;
+                    }
+                    node = node.parent;
+                }
+                if (ourImage) continue;
                 Material candidate = image.material;
                 if (candidate == null || candidate.shader == null) continue;
                 if (string.Equals(candidate.shader.name, LitShaderName, StringComparison.Ordinal))
