@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 15, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.15"' in source["Plugin"]
+assert 'Version = "0.1.16"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -163,7 +163,7 @@ assert manifest["version_number"] == "0.1.15"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
 
-assert "VisibleRailInset = 13f" in source["QolStoreSort"]
+assert "VisibleRailInset = 6f" in source["QolStoreSort"]
 assert "float iconCenterX=centerX+Mathf.Min(VisibleRailInset*scale,woodWidth*.18f);" in source["QolStoreSort"]
 assert "PositionScreen(_sort,new Vector2(iconCenterX,top),iconHit,iconHit)" in source["QolStoreSort"]
 assert "PositionScreen(_quick,new Vector2(iconCenterX,middle),iconHit,iconHit)" in source["QolStoreSort"]
@@ -186,7 +186,27 @@ assert ".012f" not in source["QolStoreSort"] and ".012f" not in source["QolTrash
 board_right = 684.0
 wood_width = 84.0
 previous_center = board_right - wood_width/2
-new_center = previous_center + min(13.0,wood_width*0.18)
-assert abs(new_center - 655) < 0.01
-assert abs(new_center - (628+684)/2) <= 1
+new_center = previous_center + min(6.0,wood_width*0.18)
+assert abs(new_center - 648) < 0.01
+assert new_center < 655
 assert new_center+26 <= board_right
+
+# No popup tooltip, per-frame hover polling or visible clickbox background.
+ui = source["QolStoreSort"]
+trash = source["QolTrashReclaim"]
+assert 'hover.Initialize(display, false);' in ui
+assert 'hover.Initialize(image, sprite == QolFavorites.FavoriteIcon);' in ui
+assert 'hover.Initialize(image, false);' in trash
+assert 'private bool _hovered;' in ui
+assert 'bool gold = _hovered || QolFavorites.FavoriteMode;' in ui
+assert '_favoriteHover.Refresh();' in ui
+assert '_graphic.gameObject.AddComponent<Shadow>()' in ui
+assert '_glow.enabled = _hovered;' in ui
+assert 'new Color(.73f, .49f, .30f, 1f)' in ui
+assert 'new Color(1f, .92f, .62f, 1f)' in ui
+assert 'void OnPointerEnter(PointerEventData eventData)' in ui
+assert 'void OnPointerExit(PointerEventData eventData)' in ui
+assert 'SirrohQOLTooltip' not in ui
+assert 'TextMeshProUGUI' not in ui
+assert 'void Hover(string caption)' not in ui
+assert 'void Unhover()' not in ui

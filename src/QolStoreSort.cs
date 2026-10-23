@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using HarmonyLib;
-using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -24,7 +23,7 @@ namespace Sirroh.Qol
         private static Button _favoriteButton;
         private static Button _storeButton;
         private static Image _favoriteImage;
-        private static TextMeshProUGUI _hint;
+        private static QolIconHover _favoriteHover;
         private static RectTransform _overlayRect;
         private static RectTransform _woodRect;
         private static Canvas _canvas;
@@ -48,7 +47,7 @@ namespace Sirroh.Qol
         private const float RecycleHitSize = 54f;
         // Shift from the original (partially hidden) 84px board center to
         // the center of the visible right-hand tab in the user's screenshot.
-        private const float VisibleRailInset = 13f;
+        private const float VisibleRailInset = 6f;
         private const float ArmorShieldX = 643f;
         private const float ArmorShieldY = 80f;
 
@@ -79,7 +78,6 @@ namespace Sirroh.Qol
             if (_overlay != null) _overlay.SetActive(false);
             if (_woodRoot != null) _woodRoot.SetActive(false);
             if (_favoritePanel != null) _favoritePanel.SetActive(false);
-            Unhover();
         }
 
         internal static RectTransform OverlayParent(InventoryGui gui)
@@ -136,24 +134,12 @@ namespace Sirroh.Qol
             _favoriteButton = MakeSmallButton(_overlayRect,"Ulubione (Alt + LPM / PPM)",
                 QolFavorites.FavoriteIcon,0,ToggleFavorite);
             _favoriteImage = _favoriteButton.transform.Find("Icon").GetComponent<Image>();
+            _favoriteHover = _favoriteButton.GetComponent<QolIconHover>();
             // A 17px star fits inside the 27x33px metal armor-shield icon.
             _favoriteImage.rectTransform.sizeDelta = new Vector2(17f,17f);
             _storeButton = MakeSmallButton(fav,"Store All",QolFavorites.QuickIcon,4,
                 QolNearbyInventory.StartStoreCurrent);
 
-            GameObject tooltip = new GameObject("SirrohQOLTooltip",
-                typeof(RectTransform),typeof(TextMeshProUGUI));
-            tooltip.transform.SetParent(_overlay.transform,false);
-            RectTransform tipRect = tooltip.GetComponent<RectTransform>();
-            tipRect.anchorMin = tipRect.anchorMax = new Vector2(.5f,.5f);
-            tipRect.pivot = new Vector2(0f,0f);
-            tipRect.sizeDelta = new Vector2(270f,22f);
-            _hint = tooltip.GetComponent<TextMeshProUGUI>();
-            _hint.fontSize = 14f;
-            _hint.alignment = TextAlignmentOptions.Left;
-            _hint.raycastTarget = false;
-            if (gui.m_playerName != null) _hint.font = gui.m_playerName.font;
-            tooltip.SetActive(false);
             PositionActions(gui);
         }
 
@@ -208,7 +194,8 @@ namespace Sirroh.Qol
             display.sprite = sprite;
             display.preserveAspect = true;
             display.raycastTarget = false;
-            go.AddComponent<QolIconHover>().Caption = name;
+            var hover = go.AddComponent<QolIconHover>();
+            hover.Initialize(display, false);
             return rt;
         }
 
@@ -236,7 +223,8 @@ namespace Sirroh.Qol
             ir.anchoredPosition=Vector2.zero;
             Image image=icon.GetComponent<Image>();
             image.sprite=sprite; image.preserveAspect=true; image.raycastTarget=false;
-            go.AddComponent<QolIconHover>().Caption=name;
+            var hover = go.AddComponent<QolIconHover>();
+            hover.Initialize(image, sprite == QolFavorites.FavoriteIcon);
             return btn;
         }
 
@@ -269,9 +257,7 @@ namespace Sirroh.Qol
             }
             if(_storeButton != null)
                 _storeButton.gameObject.SetActive(QolGameAccess.CurrentContainer(gui)!=null);
-            if(_favoriteImage != null)
-                _favoriteImage.color=QolFavorites.FavoriteMode
-                    ? new Color(1f,1f,.7f,1f) : Color.white;
+            if (_favoriteHover != null) _favoriteHover.Refresh();
         }
 
         private static RectTransform RootFor(RectTransform rt)=>rt.parent as RectTransform;
@@ -454,22 +440,6 @@ namespace Sirroh.Qol
             Align(_gui);
         }
 
-        internal static void Hover(string caption)
-        {
-            if (_hint == null || _overlayRect == null) return;
-            RectTransform rt=_hint.rectTransform;
-            Vector2 pt;
-            if(RectTransformUtility.ScreenPointToLocalPointInRectangle(_overlayRect,
-                Input.mousePosition,EventCamera,out pt))
-                rt.anchoredPosition=pt+new Vector2(16f,18f);
-            _hint.text=caption;
-            _hint.gameObject.SetActive(true);
-        }
-        internal static void Unhover()
-        {
-            if(_hint!=null)_hint.gameObject.SetActive(false);
-        }
-
         private static void SortPlayer()
         {
             Player player = Player.m_localPlayer;
@@ -526,16 +496,72 @@ namespace Sirroh.Qol
             _favoritePanel=null;_overlay=null;_woodRoot=null;
             _overlayRect=null;_woodRect=null;_canvas=null;_gui=null;
             _favoriteButton=null;_favoriteImage=null;_storeButton=null;
-            _hint=null;_sort=null;_quick=null;_restock=null;
+            _favoriteHover=null;_sort=null;_quick=null;_restock=null;
             _recycleWood=null;_sortWood=null;_quickWood=null;_restockWood=null;
             _warnedLayoutFallback=false; _recycleCenter=Vector2.zero;
         }
     }
 
-    internal sealed class QolIconHover:MonoBehaviour,IPointerEnterHandler,IPointerExitHandler
+    /// <summary>
+    /// Lightweight hover feedback, with no floating text, allocations per hover
+    /// or Update loop. Favorite stays gold while editing is active.
+    /// </summary>
+    internal sealed class QolIconHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
-        internal string Caption;
-        public void OnPointerEnter(PointerEventData data){QolStoreSort.Hover(Caption);}
-        public void OnPointerExit(PointerEventData data){QolStoreSort.Unhover();}
+        private Image _graphic;
+        private Shadow _glow;
+        private bool _isFavorite;
+        private bool _hovered;
+
+        internal void Initialize(Image graphic, bool isFavorite)
+        {
+            _graphic = graphic;
+            _isFavorite = isFavorite;
+            if (_graphic == null) return;
+            _glow = _graphic.GetComponent<Shadow>();
+            if (_glow == null) _glow = _graphic.gameObject.AddComponent<Shadow>();
+            _glow.effectColor = new Color(1f, .78f, .42f, .22f);
+            _glow.effectDistance = new Vector2(0f, -1f);
+            _glow.useGraphicAlpha = true;
+            _glow.enabled = false;
+            Refresh();
+        }
+
+        internal void Refresh()
+        {
+            if (_graphic == null) return;
+            if (_isFavorite)
+            {
+                bool gold = _hovered || QolFavorites.FavoriteMode;
+                _graphic.color = gold
+                    ? new Color(1f, .92f, .62f, 1f)
+                    : new Color(.73f, .49f, .30f, 1f);
+            }
+            else
+            {
+                _graphic.color = _hovered
+                    ? new Color(1f, .99f, .93f, 1f)
+                    : new Color(.89f, .89f, .89f, 1f);
+            }
+            if (_glow != null) _glow.enabled = _hovered;
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            _hovered = true;
+            Refresh();
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            _hovered = false;
+            Refresh();
+        }
+
+        private void OnDisable()
+        {
+            _hovered = false;
+            Refresh();
+        }
     }
 }

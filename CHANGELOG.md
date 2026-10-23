@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.16
+- Reduce four action icons' horizontal offset to 6px (previously 13px); wooden tabs and heights unchanged.
+- Eliminate hover text popups. Event-driven modest brightening and subtle golden shadow highlight the icon itself on pointer enter, resetting on pointer exit, without Update work.
+- Favorite star stays on Armor shield, brown when inactive, gold on hover or while favorite editing mode is active; clicking again restores the inactive brown when cursor leaves.
+- Keep transparent hitboxes, game mechanics and all QOL modules unchanged.
+
 ## 0.1.15
 - Remove the semi-transparent square behind Sort, Quickstack, Restock, Recycle and Favorite by using fully transparent raycast-enabled Button Image surfaces. Hit targets and icon artwork remain unchanged.
 - Shift only the four action icon/clickable regions right by 13px at reference 1920x1080, matching the visible part of the wooden side tabs (not their hidden underlay). Keep wooden tabs and their vertical spacing intact.

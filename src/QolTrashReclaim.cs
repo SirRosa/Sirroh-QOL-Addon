@@ -85,7 +85,7 @@ namespace Sirroh.Qol
             image.preserveAspect = true;
             image.raycastTarget = false;
             QolIconHover hover = _buttonObject.AddComponent<QolIconHover>();
-            hover.Caption = "Trash / Reclaim";
+            hover.Initialize(image, false);
             Align(gui);
         }
 
