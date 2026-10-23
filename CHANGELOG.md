@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.14
+- Replace the combined 200px StackWoodTab with three separately sized and positioned wooden tabs (Sort, Quickstack, Restock).
+- Anchor them to actual runtime inventory/Weight rect geometry, divide available vertical space into equal thirds and stop the third tab above the inventory bottom.
+- Extend left under the native inventory and reach exactly to the existing Weight/shield tab outer right edge.
+- Preserve Recycle position above Weight, Favorite and Store All, existing icon dimensions and all existing QOL systems.
+- Add CI geometry assertions against the supplied 1920x1080 screenshot.
+
 ## 0.1.13
 - Scale down and align the four addon icons to the vanilla right-side inventory bars: 34px artwork on 52px action hitboxes (38px Recycle on 54px); 60px width 9-slice wood underlay.
 - Adjust placement to Recycle x645/y190, Sort x645/y331, Quickstack x645/y396, Restock x645/y461 at 1920 design resolution. Keep Favorite where it was.

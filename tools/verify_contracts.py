@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 15, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.13"' in source["Plugin"]
+assert 'Version = "0.1.14"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -102,16 +102,33 @@ assert "QolFavorites.WoodPanel" in source["QolStoreSort"]
 assert "ReadSprite(\"ui_wood\")" in source["QolFavorites"]
 assert "QolStoreSort.PositionRecycle" in source["QolTrashReclaim"]
 assert "QolStoreSort.Tick();" in source["Plugin"]
-assert "RecycleY = 190f" in source["QolStoreSort"]
-assert "SortY = 331f" in source["QolStoreSort"]
-assert "QuickY = 396f" in source["QolStoreSort"]
-assert "RestockY = 461f" in source["QolStoreSort"]
-assert "ActionX = 645f" in source["QolStoreSort"]
-assert "PositionAt(_sort,ActionX,SortY,ActionHitSize,ActionHitSize)" in source["QolStoreSort"]
+assert "_actionsWood" not in source["QolStoreSort"]
+for key in ("_sortWood", "_quickWood", "_restockWood"):
+    assert f"PositionScreen({key}," in source["QolStoreSort"]
+assert "ScreenBounds(panel)" in source["QolStoreSort"]
+assert "ScreenBounds(weight)" in source["QolStoreSort"]
+assert "rightEdge=weightTab.xMax;" in source["QolStoreSort"]
+assert "playerBottom=inventory.yMin;" in source["QolStoreSort"]
+assert "weightBottom=weightTab.yMin;" in source["QolStoreSort"]
+assert "float slot=available/3f;" in source["QolStoreSort"]
+assert "float lower=playerBottom+4f*scale;" in source["QolStoreSort"]
+assert "float upper=weightBottom-3f*scale;" in source["QolStoreSort"]
+assert "float woodWidth=84f*scale;" in source["QolStoreSort"]
+assert "exposed+16f*scale" in source["QolStoreSort"]
+assert "new Vector2(centerX,bottom),woodWidth,boardHeight" in source["QolStoreSort"]
+assert "_recycleCenter=new Vector2(centerX,weightTop+nativeTabHeight*.5f" in source["QolStoreSort"]
+assert "PositionAt(" not in source["QolStoreSort"]
+# Regression geometry from the 1920x1080 game screenshot:
+# inventory bottom 475px, Weight bottom 300px.
+upper = 1080 - 300 - 3
+lower = 1080 - 475 + 4
+slot = (upper - lower) / 3
+centers_top = [1080-(upper-slot*(i+0.5)) for i in range(3)]
+assert all(300 < y < 475 for y in centers_top), centers_top
+assert centers_top[-1] + (slot-1)/2 <= 475 - 3, centers_top
+assert (684 - (84/2) + 84/2) == 684
 assert "private const float ActionHitSize = 52f" in source["QolStoreSort"]
 assert "ActionIconInset = 9f" in source["QolStoreSort"]
-assert "PositionAt(_recycleWood,ActionX,RecycleY,60f,62f)" in source["QolStoreSort"]
-assert "PositionAt(_actionsWood,ActionX,(SortY+RestockY)*.5f,60f,200f)" in source["QolStoreSort"]
 assert "new Vector2(8f,8f)" in source["QolTrashReclaim"]
 assert "private static string PrefabId" in source["QolTrashReclaim"]
 assert "db.GetRecipe(item)" in source["QolTrashReclaim"]
@@ -142,6 +159,6 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.13"
+assert manifest["version_number"] == "0.1.14"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")

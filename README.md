@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.13 (test release)
+# Sirroh QOL Addon — 0.1.14 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 
@@ -109,3 +109,10 @@ Coordinates are converted to screen/Canvas space, scaling uniformly to other scr
 - Target centers at 1920 reference resolution: Recycle (645,190), Sort (645,331), Quickstack (645,396), Restock (645,461). Favorite stays in its existing location, as requested. Screen/canvas scaling remains supported.
 - Reclaim no longer rejects ALL items containing custom metadata (many ordinary armor items, including leggings, carry metadata). Prefab identity takes precedence over shared display name and `ObjectDB.GetRecipe(item)` is used as a fallback when necessary; quality-upgrade material yields and inventory-capacity checks are preserved.
 - Missing recipes emit a diagnostic message containing the prefab and quality. No usable recipe still opens the explicit delete confirmation; the source is not removed without that confirmation.
+
+## v0.1.14 — three side tabs fitted to actual inventory height
+- Sort, Quickstack, Restock now each have their **own wooden background panel**; no single 200px-long lower wood block.
+- At runtime, positions are calculated from `InventoryGui.m_player` and its `Weight` RectTransform. All three panels divide the available vertical gap evenly between the bottom of Weight and the bottom of the inventory; 4px bottom clearance ensures the last tab **never extends below** the inventory.
+- Wooden tabs extend ~16px beneath the existing inventory edge while matching the exact outer right edge of vanilla weight/shield tabs. They are sized to the available 3-slot height, with 1px separation and 52px bounded icon-hit targets.
+- A proportional screenshot-based fallback is retained for UI replacement mods that do not expose suitable Weight transform bounds. Recycle stays above Weight. Favorite and Store All remain unchanged.
+- All Q/R transfer, Reclaim, icons, and other modules remain untouched.
