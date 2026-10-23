@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 17, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.20"' in source["Plugin"]
+assert 'Version = "0.1.21"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -159,7 +159,7 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.20"
+assert manifest["version_number"] == "0.1.21"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
 
@@ -202,8 +202,8 @@ assert 'bool gold = _hovered || QolFavorites.FavoriteMode;' in ui
 assert '_favoriteHover.Refresh();' in ui
 assert '_graphic.gameObject.AddComponent<Shadow>()' in ui
 assert '_glow.enabled = _hovered;' in ui
-assert 'new Color(.73f, .49f, .30f, 1f)' in ui
-assert 'new Color(1f, .92f, .62f, 1f)' in ui
+assert 'new Color(1f, .78f, .52f, 1f)' in ui
+assert 'new Color(1f, .96f, .76f, 1f)' in ui
 assert 'void OnPointerEnter(PointerEventData eventData)' in ui
 assert 'void OnPointerExit(PointerEventData eventData)' in ui
 assert 'SirrohQOLTooltip' not in ui
@@ -215,13 +215,22 @@ assert 'void Unhover()' not in ui
 lighting = source["QolNativeUiLighting"]
 assert 'LitShaderName = "Custom/LitGui"' in lighting
 # Separate native LitGui brightness presets (only _Brightness changes).
-assert 'WoodBrightnessFactor = 1.25f' in lighting
-assert 'GlyphBrightnessFactor = 2.40f' in lighting
+assert 'WoodTarget = 1.25f' in lighting
+assert 'GlyphTarget = 2.40f' in lighting
+assert 'WoodBlend = 0.16f' in lighting
+assert 'GlyphBlend = 0.40f' in lighting
+assert 'FavoriteBlend = 0.62f' in lighting
 assert 'Shader.PropertyToID("_Brightness")' in lighting
-assert "new Material(reference)" in lighting
+assert 'new Material(reference)' in lighting
 assert 'variant.SetFloat(BrightnessId, adjusted);' in lighting
-assert "Mathf.Max(original, 1f)" in lighting
-assert "Mathf.Clamp(" in lighting
+assert 'original + (Mathf.Max(original, previousTarget) -' in lighting
+assert 'original) * blend, 0.01f, 4f' in lighting
+assert 'Mathf.Max(original, 1f)' not in lighting
+assert 'new Material(reference)' in lighting
+assert 'QolFavorites.FavoriteIcon' in lighting
+assert '_favoriteLitMaterial = MakeVariant(source, "favorite", GlyphTarget, FavoriteBlend)' in lighting
+assert 'image.sprite == QolFavorites.FavoriteIcon' in lighting
+assert 'if (_favoriteLitMaterial != null)' in lighting
 assert "ApplyImages(wood, true);" in lighting
 assert "ApplyImages(actions, false);" in lighting
 assert "ApplyImages(favorites, false);" in lighting

@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.20 (test release)
+# Sirroh QOL Addon — 0.1.21 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 
@@ -166,3 +166,13 @@ The UI was still too dark despite earlier 0.1.18 art-only gamma correction. The 
 This release creates just two cached material variants by copying the vanilla LitGui material: wood uses `_Brightness` = 1.25 × max(1, native setting), gold icons (Recycle/Sort/Quickstack/Restock, Favorite, Store All and favorite borders) use 2.40 × max(1, native setting), capped at 4.0. These are fixed **material brightness calibrations, not a second lighting system**; Unity still applies Valheim's dynamic scene/dungeon lighting through the original shader. Vanilla materials, art pixels/alpha, colors, hitboxes, game mechanics and the AzuAutoStore compatibility module are unchanged.
 
 For diagnosis, BepInEx LogOutput shows: `QOL LitGui wood: native _Brightness=... QOL _Brightness=...` and `QOL LitGui glyphs: ...`. Compare the addon wood to vanilla shield/weight tabs and icon legibility at dusk/night and indoors. If the native shader is missing, the addon preserves existing UI material behavior and logs a warning rather than substituting a custom day/night formula.
+
+## v0.1.21 — restrained native UI brightness, visible Favorite
+
+The previous v0.1.20 mistakenly **forced the original Valheim LitGui brightness up to at least 1** before multiplying, which made the new wooden side tabs visibly lighter than the native Armor/Weight boards, while the brown Favorite tint was still very dark.
+
+The correction **preserves the actual native `_Brightness` baseline** (even below 1). The wood material is now 16% of the way from that baseline to the previous 1.25 target, normal symbols are 40% toward 2.40, and Favorite alone 62% toward 2.40. These **are interpolation fractions, not multipliers**. The expected result is restrained wooden tabs close to vanilla while keeping symbols legible. It still uses Valheim's native Custom/LitGui shader and its runtime lighting; no clock, shader globals or per-frame computations.
+
+The Favorite star on the steel Armor shield has an additional warmer, brighter bronze tint (RGB 1.0 / .78 / .52) when inactive and soft gold (1.0 / .96 / .76) when hovered or selected. Clicking again returns to bronze when the pointer leaves. It uses its own cached LitGui material, avoiding changes to other icons or the vanilla UI.
+
+For troubleshooting, the BepInEx log records the actual native and addon _Brightness of wood, glyphs and favorite. These values allow fine adjustments to the game material instead of large guess-based PNG modifications. Source graphics, layout, hover glows, favorites behavior and Q/R/Reclaim mechanics are unchanged.

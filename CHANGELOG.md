@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.21
+- Correct excessive v0.1.20 panel brightness: do not force the original Valheim `Custom/LitGui` `_Brightness` to 1 before calibration. Interpolate from the ACTUAL native material level toward the previous upper target by only 16% for wood and 40% for general glyphs. The previous high values remain only as upper reference points, not multipliers.
+- Favorite receives one separately cached LitGui material with a 62% blend and a brighter, muted bronze tint when inactive / pale gold when hovered or selected. Improves readability on the dark steel armor shield without turning wooden tabs into bright blocks.
+- Keep original vanilla materials unmodified, day/night shader lighting, all alpha, 64x64 source images, hover behavior, AzuAutoStore compatibility and other QOL systems unchanged.
+- Regression checks prevent reintroducing the minimum-1.0 brightness override and enforce distinct wood/glyph/favorite material variants.
+
 ## 0.1.20
 - Fix unreadably dark addon tabs/icons at night by calibrating Valheim's own `Custom/LitGui` `_Brightness` property, instead of further overexposing original PNG images. The shader explicitly supports independent _Brightness and _Lighting properties.
 - Clone the actual vanilla LitGui material exactly once per graphic category: wood uses 1.25x neutral brightness, glyphs/favorite borders use 2.40x. The original shared material remains untouched; no per-image material allocations.
