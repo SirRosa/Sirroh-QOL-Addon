@@ -155,6 +155,17 @@ namespace Sirroh.Qol
             {
                 Image baseImage = ___m_elements[index].m_queued;
                 if (baseImage == null) continue;
+                if (QolAzuAutoStoreCompatibility.IsDetected)
+                {
+                    // Remove an Azu border left from a prior scene/UI redraw.
+                    // The Azu rendering patch is suppressed while Sirroh is loaded.
+                    Transform azuBorder = baseImage.transform.Find("AzuAutoStoreFavoritingBorder");
+                    if (azuBorder != null)
+                    {
+                        Image old = azuBorder.GetComponent<Image>();
+                        if (old != null) old.enabled = false;
+                    }
+                }
                 Transform found = baseImage.transform.Find("SirrohFavoriteBorder");
                 Image overlay = found == null ? null : found.GetComponent<Image>();
                 if (overlay == null)

@@ -89,6 +89,15 @@ namespace Sirroh.Qol
                     _host.Patch("AzuAutoStore.Favorites", check,
                         postfix: AccessTools.Method(typeof(QolAzuAutoStoreCompatibility),
                             nameof(AfterAzuFavoriteCheck)), priority: Priority.Last);
+                    // Suppress only Azu's redundant FAVORITE BORDER renderer.
+                    // The native favorite toggles, search, and persistence remain usable.
+                    Type borderType = AccessTools.TypeByName("AzuAutoStore.Patches.Favoriting.BorderRenderer");
+                    MethodInfo borderDraw = borderType == null ? null :
+                        AccessTools.Method(borderType, "UpdateGui");
+                    if (borderDraw != null)
+                        _host.Patch("AzuAutoStore.DuplicateFavoriteBorders", borderDraw,
+                            prefix: AccessTools.Method(typeof(QolAzuAutoStoreCompatibility),
+                                nameof(BeforeAzuBorderDraw)), priority: Priority.First);
                     MethodInfo slotCheck = AccessTools.Method(favorites,
                         "IsSlotFavorited", new[] { typeof(Vector2i) });
                     _azuNameFavorite = AccessTools.Method(favorites, "IsItemNameFavorited");
@@ -151,6 +160,15 @@ namespace Sirroh.Qol
             }
             finally { _callingFromSirroh = false; }
             return true;
+        }
+
+        internal static bool IsDetected => _detected;
+
+        private static bool BeforeAzuBorderDraw(InventoryGrid __instance)
+        {
+            // Sirroh draws the combined favorites overlay, including empty Azu slots.
+            return InventoryGui.instance == null ||
+                   __instance != InventoryGui.instance.m_playerGrid;
         }
 
         private static void AfterAzuFavoriteCheck(ItemDrop.ItemData __0, ref bool __result)

@@ -4,7 +4,7 @@
 - Add soft AzuAutoStore 3.1.7 integration: configuration selects the Sirroh (default) or Azu manual QuickStack backend.
 - Suppress only the overlapping Azu manual store when Sirroh is selected; retain all native Azu automatic storage, configured container types and background collection.
 - When Azu is selected, delegate the Q key and QuickStack UI to Azu Functions.TryStore() once, avoiding parallel Sirroh operations and duplicate feedback. Preserve Sirroh Restock, Sort and Store All.
-- Respect both mods' favorites in either backend through a cached, bidirectional runtime query bridge. Preserve marked empty Azu slots during Sirroh Sort, and synchronize explicit Sirroh favorite toggles via Azu's native API. No manual editing of either mod's binary favorites files.
+- Respect both mods' favorites in either backend through a cached, bidirectional runtime query bridge. Preserve marked empty Azu slots during Sirroh Sort, synchronize explicit Sirroh favorite toggles via Azu's native API, and hide only Azu's duplicate favorite-border renderer. No manual editing of either mod's binary favorites files.
 - No work on Recycle_N_Reclaim in this release.
 
 ## 0.1.18

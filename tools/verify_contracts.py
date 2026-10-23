@@ -272,3 +272,7 @@ assert 'SetAzuNameFavorite(item, inv, !wasFavorite)' in source["QolFavorites"]
 assert 'IsAzuSlotFavorite(new Vector2i(index % width, index / width)' not in source["QolFavorites"]
 assert 'bool slot = IsFavoriteSlot(new Vector2i(index % width, index / width), ___m_inventory);' in source["QolFavorites"]
 assert '_lastNativeDispatchFrame' in azu
+
+assert 'DuplicateFavoriteBorders' in azu
+assert 'BeforeAzuBorderDraw' in azu
+assert 'AzuAutoStoreFavoritingBorder' in source["QolFavorites"]
