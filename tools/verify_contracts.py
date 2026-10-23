@@ -3,9 +3,9 @@ import json
 
 root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
-assert len(source) == 15, sorted(source)
+assert len(source) == 16, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.16"' in source["Plugin"]
+assert 'Version = "0.1.17"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -159,7 +159,7 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.16"
+assert manifest["version_number"] == "0.1.17"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
 
@@ -210,3 +210,26 @@ assert 'SirrohQOLTooltip' not in ui
 assert 'TextMeshProUGUI' not in ui
 assert 'void Hover(string caption)' not in ui
 assert 'void Unhover()' not in ui
+
+# Native Valheim UI dimming: no duplicated EnvMan/time/ambient calculations.
+lighting = source["QolNativeUiLighting"]
+assert 'LitShaderName = "Custom/LitGui"' in lighting
+assert "FindLitMaterial(gui.m_player)" in lighting
+assert "FindLitMaterial(gui.transform)" in lighting
+assert "Shader.Find(LitShaderName)" in lighting
+assert 'image.material = material;' in lighting
+assert 'QolNativeUiLighting.Sync(__instance, _woodRoot, _overlay, _favoritePanel);' in source["QolStoreSort"]
+assert 'QolNativeUiLighting.Sync(gui, _woodRoot, _overlay, _favoritePanel);' in source["QolStoreSort"]
+assert "QolNativeUiLighting.Apply(image);" in source["QolTrashReclaim"]
+assert "QolNativeUiLighting.Apply(overlay);" in source["QolFavorites"]
+assert "QolNativeUiLighting.Shutdown();" in source["Plugin"]
+assert "GetComponentsInChildren<Image>(true)" in lighting
+assert "image.color.a < .00001f" in lighting
+assert "Update()" not in lighting
+assert "EnvMan.instance" not in lighting
+assert "IsNight" not in lighting
+assert "IsDay" not in lighting
+assert "RenderSettings" not in lighting
+assert "SetGlobalColor" not in lighting
+assert "SetGlobalFloat" not in lighting
+assert "Mathf.Lerp" not in lighting

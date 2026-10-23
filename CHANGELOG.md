@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.17
+- Use the native Valheim `Custom/LitGui` material/shader for every visible QOL icon, wood tab and Favorite slot border. Reuse the inventory's existing shader material when possible.
+- The native EnvMan shader globals and LitGui GPU shading provide day/night and dark-area shading; there is no separate brightness tick, time interpolation or manual environment sampling in our mod.
+- Graceful fallback to the game's loaded LitGui shader when UI replacements remove native LitGui images; warnings without altering base game visuals when the shader is absent.
+- Preserve icon layout, hover glows, Favorite selection colors, and all QOL gameplay mechanics from v0.1.16.
+
 ## 0.1.16
 - Reduce four action icons' horizontal offset to 6px (previously 13px); wooden tabs and heights unchanged.
 - Eliminate hover text popups. Event-driven modest brightening and subtle golden shadow highlight the icon itself on pointer enter, resetting on pointer exit, without Update work.

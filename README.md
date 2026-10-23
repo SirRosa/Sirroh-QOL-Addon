@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.16 (test release)
+# Sirroh QOL Addon — 0.1.17 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 
@@ -126,3 +126,12 @@ Coordinates are converted to screen/Canvas space, scaling uniformly to other scr
 - Rail icon center adjustment: 13px -> **6px**, without moving any wooden boards.
 - Hovering over icons gives subtle brighter artwork and a faint warm gold edge shadow. Popup text and tooltip objects are removed; hover changes only occur on pointer events.
 - Favorite on the armor shield: **brown** normally, **gold** when hovered or when favorite-editing mode is active. Clicking once enables gold editing mode; clicking again disables it and returns brown after pointer exit.
+
+## v0.1.17 — Native Valheim day/night UI lighting
+
+- **No custom day/night algorithm.** Valheim exposes its own `Custom/LitGui` shader (with lighting, brightness, saturation and shadow parameters); the game `EnvMan` sets global ambient/sun shader lighting values as environments change.
+- At InventoryGui.Show, the addon looks for an existing `Custom/LitGui` material on the **actual vanilla inventory UI images** and shares that material across the addon wood tabs, action glyphs, Favorite, Store All, Recycle, and Favorite slot borders. This preserves vanilla material-level lighting settings and automatically receives native shader light/dark changes without polling.
+- With full UI-overhaul replacements that lack an existing LitGui material, the addon looks up Valheim's loaded `Custom/LitGui` shader and creates a single fallback material. If even the shader is unavailable, it leaves existing graphics unchanged and logs a warning. It **never** substitutes a homemade clock-based brightness calculation.
+- Fully transparent clickable image surfaces remain on Unity's unlit UI shader, avoiding unnecessary draw/material changes. Visual highlight tint/colors remain independent and multiply through native LitGui lighting.
+- Lighting material discovery occurs once on UI creation/open and re-checks after the next frame to pick up dynamically initialized icons. No per-frame shader searches, no extra color polling.
+- Confirm in Valheim at daytime, sunset/night, inside caves and near artificial lights; actual native shader lighting response must be validated on the client.
