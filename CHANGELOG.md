@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.13
+- Scale down and align the four addon icons to the vanilla right-side inventory bars: 34px artwork on 52px action hitboxes (38px Recycle on 54px); 60px width 9-slice wood underlay.
+- Adjust placement to Recycle x645/y190, Sort x645/y331, Quickstack x645/y396, Restock x645/y461 at 1920 design resolution. Keep Favorite where it was.
+- Reclaim recipe bug: metadata on armor no longer causes it to be rejected. Resolve by exact prefab first, ObjectDB recipe lookup second, shared-name fallback last. Preserve inventory-capacity protection and full base recipe quality ingredient refund.
+- Keep all existing gameplay, Q/R performance fixes and icon resources unchanged.
+
 ## 0.1.12
 - Position 64×64 Recycle, Sort, Quickstack, Restock at the exact supplied 1920×1080 reference image coordinates. Uniform resolution-aware scaling; preserve Favorite near Weight and Store All unchanged.
 - Place supplied wooden 64×64 textured backplate as 9-sliced UI geometry behind inventory, projecting from the edge in red-button and three-button groupings. Cache and hide overlays with inventory.

@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.12 (test release)
+# Sirroh QOL Addon — 0.1.13 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 
@@ -103,3 +103,9 @@ The user's reference screen is 1920×1080 with marker centers:
 
 Coordinates are converted to screen/Canvas space, scaling uniformly to other screen resolutions. The original Favorite control stays anchored under Weight; Store All stays with it. The supplied wood panel sprite is used as a 9-sliced decorative background, behind the player inventory panel (two separate protruding tabs for separated red vs three lower icons), with no raycasts. UI objects are cached and hidden when inventory closes.
 
+
+## v0.1.13 — compact aligned UI and broader armor recipe matching
+- Based on the actual 1920×1078 screenshot, the UI controls now match the existing inventory's narrow shield/weight rail. Action hitboxes are 52×52 with 34×34 rendered icons; Recycle is 54×54 with a 38×38 icon. Wooden backing has been reduced from 84px wide to 60px and aligned to the rail.
+- Target centers at 1920 reference resolution: Recycle (645,190), Sort (645,331), Quickstack (645,396), Restock (645,461). Favorite stays in its existing location, as requested. Screen/canvas scaling remains supported.
+- Reclaim no longer rejects ALL items containing custom metadata (many ordinary armor items, including leggings, carry metadata). Prefab identity takes precedence over shared display name and `ObjectDB.GetRecipe(item)` is used as a fallback when necessary; quality-upgrade material yields and inventory-capacity checks are preserved.
+- Missing recipes emit a diagnostic message containing the prefab and quality. No usable recipe still opens the explicit delete confirmation; the source is not removed without that confirmation.

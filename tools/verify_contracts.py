@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 15, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.12"' in source["Plugin"]
+assert 'Version = "0.1.13"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -102,12 +102,21 @@ assert "QolFavorites.WoodPanel" in source["QolStoreSort"]
 assert "ReadSprite(\"ui_wood\")" in source["QolFavorites"]
 assert "QolStoreSort.PositionRecycle" in source["QolTrashReclaim"]
 assert "QolStoreSort.Tick();" in source["Plugin"]
-assert "RecycleY = 186.5f" in source["QolStoreSort"]
-assert "SortY = 326.5f" in source["QolStoreSort"]
-assert "QuickY = 384.5f" in source["QolStoreSort"]
-assert "RestockY = 442.5f" in source["QolStoreSort"]
+assert "RecycleY = 190f" in source["QolStoreSort"]
+assert "SortY = 331f" in source["QolStoreSort"]
+assert "QuickY = 396f" in source["QolStoreSort"]
+assert "RestockY = 461f" in source["QolStoreSort"]
 assert "ActionX = 645f" in source["QolStoreSort"]
-assert "PositionAt(_sort,ActionX,SortY,64f,64f)" in source["QolStoreSort"]
+assert "PositionAt(_sort,ActionX,SortY,ActionHitSize,ActionHitSize)" in source["QolStoreSort"]
+assert "private const float ActionHitSize = 52f" in source["QolStoreSort"]
+assert "ActionIconInset = 9f" in source["QolStoreSort"]
+assert "PositionAt(_recycleWood,ActionX,RecycleY,60f,62f)" in source["QolStoreSort"]
+assert "PositionAt(_actionsWood,ActionX,(SortY+RestockY)*.5f,60f,200f)" in source["QolStoreSort"]
+assert "new Vector2(8f,8f)" in source["QolTrashReclaim"]
+assert "private static string PrefabId" in source["QolTrashReclaim"]
+assert "db.GetRecipe(item)" in source["QolTrashReclaim"]
+assert "Recipe prefabMatch = null" in source["QolTrashReclaim"]
+assert "if (item.m_customData != null && item.m_customData.Count > 0)" not in source["QolTrashReclaim"]
 assert "PositionRecycle(_buttonRect)" in source["QolTrashReclaim"]
 assert "QolFavorites.FavoriteIcon,3,ToggleFavorite" in source["QolStoreSort"]
 assert "SpriteMeshType.FullRect" in source["QolFavorites"]
@@ -133,6 +142,6 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.12"
+assert manifest["version_number"] == "0.1.13"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
