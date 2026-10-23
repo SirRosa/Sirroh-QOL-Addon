@@ -127,12 +127,14 @@ namespace Sirroh.Qol
             bool restock = !quick && Input.GetKeyDown(KeyCode.R);
             if (!quick && !restock) return;
             _nextKey = Time.unscaledTime + .25f;
+            if (quick && QolAzuAutoStoreCompatibility.DispatchQuickStack()) return;
             _host.StartCoroutine(Execute(player, quick));
         }
 
         internal static void StartArea(bool quick)
         {
             if (_host == null || _busy || Player.m_localPlayer == null) return;
+            if (quick && QolAzuAutoStoreCompatibility.DispatchQuickStack()) return;
             _host.StartCoroutine(Execute(Player.m_localPlayer, quick));
         }
 
@@ -245,6 +247,7 @@ namespace Sirroh.Qol
                         yield return null;
                         Budget.Restart();
                     }
+                    if (quick && QolAzuAutoStoreCompatibility.UseAzuQuickStack) yield break;
                     Container chest = Nearby[ci];
                     if (player == null || player != Player.m_localPlayer) yield break;
                     if (chest == null || !CanAccess(chest,player)) { skipped++; continue; }

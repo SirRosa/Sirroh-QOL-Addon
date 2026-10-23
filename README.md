@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.18 (test release)
+# Sirroh QOL Addon — 0.1.19 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 
@@ -143,3 +143,18 @@ The user's night screenshot showed that the new side-rail tabs/icons looked dark
 This is **not** a second lighting system: it does not alter `Custom/LitGui`, copy/modify Unity materials, change any shader parameters, adjust per-frame sprite tints, or detect darkness independently. Day/night fades continue to come entirely from Valheim. The embedded graphics are slightly brighter in all environments.
 
 The build reports before/after pixel brightness for each of the six assets and fails if alpha differs or the increase is excessive.
+
+
+## AzuAutoStore compatibility (0.1.19)
+
+When the optional \`Azumatt.AzuAutoStore\` mod is installed, use
+\`BepInEx/config/sirro.valheim.qoladdon.cfg\` → \`[07 Compatibility]\` →
+\`QuickStackEngine = Sirroh\` (default) or \`AzuAutoStore\`.
+
+- **Sirroh**: the Q key and Sirroh QuickStack icon run the 100 m indexed / cooperative Sirroh implementation. Azu's **manual Store Shortcut** is suppressed to avoid two overlapping actions. Azu's automatic chest collection, YAML rules, item drawers, backpacks, quivers, and its other functions are **not** disabled.
+- **AzuAutoStore**: the Q key and Sirroh QuickStack icon call Azu's native parameterless \`Functions.TryStore()\` exactly once. Azu's own Store Shortcut remains available except a duplicate shortcut bound to Q. The native 100 m Sirroh QuickStack coroutine is not started, and Azu controls the effective range (default **5 m**), rules, ownership and feedback.
+- **Restock, Sort and Store All** remain Sirroh features in either mode. Choosing Azu does *not* replace Restock with a different operation.
+- Favorite decisions are the union of Sirroh and Azu saved favorites. Azu manual/automatic deposits and Sirroh QuickStack/Store All respect favorites marked in the other mod; Sirroh's border also shows Azu favorite items. Existing favorites files are **not migrated or overwritten**. Removing a favorite in one mod does not clear an independent favorite saved in the other.
+- Without a compatible Azu installation the Sirroh backend is used, regardless of the preference. The external DLL is never required as a compile-time dependency.
+
+Recycle_N_Reclaim compatibility is **not** part of this update. Runtime behavior must be verified in a multiplayer world before treating this as a stable release.

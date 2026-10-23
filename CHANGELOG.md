@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.19
+- Add soft AzuAutoStore 3.1.7 integration: configuration selects the Sirroh (default) or Azu manual QuickStack backend.
+- Suppress only the overlapping Azu manual store when Sirroh is selected; retain all native Azu automatic storage, configured container types and background collection.
+- When Azu is selected, delegate the Q key and QuickStack UI to Azu Functions.TryStore() once, avoiding parallel Sirroh operations and duplicate feedback. Preserve Sirroh Restock, Sort and Store All.
+- Respect both mods' favorites in either backend through a cached, bidirectional runtime query bridge; show Azu favorites in Sirroh slot borders. No rewriting either mod's saved favorites.
+- No work on Recycle_N_Reclaim in this release.
+
 ## 0.1.18
 - Brighten only the six user-supplied 64x64 UI image assets in the build pipeline: wooden tab texture (gamma 0.87), four action icons (gamma 0.90), Favorite star (gamma 0.94). Darker/midtone pixels receive a mild luminance boost, with no flattening of highlights or forced recoloring.
 - Original user pixel atlas SHA-256 verification remains intact; pixel alpha, dimensions and original source images are preserved exactly. CI asserts every visible asset receives a bounded luminance increase and the alpha channel is unchanged.

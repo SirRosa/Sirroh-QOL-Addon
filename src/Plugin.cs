@@ -12,11 +12,12 @@ namespace Sirroh.Qol
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "sirro.valheim.qoladdon";
-        public const string Version = "0.1.18";
+        public const string Version = "0.1.19";
         internal static Plugin Instance;
         internal ManualLogSource Log => Logger;
         private Harmony _harmony;
 
+        internal ConfigEntry<QolQuickStackEngine> QuickStackEngine;
         internal ConfigEntry<bool> AutoRepairEnabled;
         internal ConfigEntry<bool> SafeStaminaEnabled;
         internal ConfigEntry<float> SafeRadius;
@@ -57,6 +58,9 @@ namespace Sirroh.Qol
             SignGlowRadius.SettingChanged += (_, __) => GlowingSigns.RefreshMaterials();
             NoSlopeSlideEnabled = Config.Bind("05 Slopes", "Enabled", true, "Prevent sliding on steep ground; correct downhill gravity only while idle.");
 
+            QuickStackEngine = Config.Bind("07 Compatibility", "QuickStackEngine", QolQuickStackEngine.Sirroh,
+                "Select Sirroh (100 m indexed QuickStack) or AzuAutoStore (uses Azu settings and range). " +
+                "When Azu is absent/incompatible, Sirroh is used. Azu background auto-storage is preserved.");
             _harmony = new Harmony(Guid);
             AutoRepair.Install(this);
             SafeStamina.Install(this);
@@ -67,6 +71,7 @@ namespace Sirroh.Qol
             ConstructionCamera.Install(this);
             QolRecipeListSafety.Install(this);
             QolFavorites.Install(this);
+            QolAzuAutoStoreCompatibility.Install(this);
             QolNearbyInventory.Install(this);
             QolTrashReclaim.Install(this);
             QolStoreSort.Install(this);
@@ -95,6 +100,7 @@ namespace Sirroh.Qol
         private void Update()
         {
             ConstructionCamera.Tick();
+            QolAzuAutoStoreCompatibility.Tick();
             QolNearbyInventory.Tick();
             QolStoreSort.Tick();
         }
@@ -107,6 +113,7 @@ namespace Sirroh.Qol
             try { QolNearbyInventory.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { QolTrashReclaim.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { QolFavorites.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
+            try { QolAzuAutoStoreCompatibility.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { ConstructionCamera.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { _harmony?.UnpatchSelf(); } catch (Exception e) { Logger.LogWarning(e); }
             try { GlowingSigns.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }

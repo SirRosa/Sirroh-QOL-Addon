@@ -96,8 +96,26 @@ namespace Sirroh.Qol
         {
             if (item == null || item.m_shared == null) return false;
             Ensure();
-            return Names.Contains(item.m_shared.m_name) ||
-                (inv != null && Slots.Contains(item.m_gridPos.y * inv.GetWidth() + item.m_gridPos.x));
+            return IsSirrohFavorite(item, inv) ||
+                QolAzuAutoStoreCompatibility.IsAzuFavorite(item, inv);
+        }
+
+        // Raw Sirroh state only; Harmony's Azu postfix MUST NOT call a combined check.
+        private static bool IsSirrohFavorite(ItemDrop.ItemData item, Inventory inv)
+        {
+            return item != null && item.m_shared != null &&
+                (Names.Contains(item.m_shared.m_name) ||
+                 (inv != null && Slots.Contains(item.m_gridPos.y * inv.GetWidth() + item.m_gridPos.x)));
+        }
+
+        internal static bool IsSirrohFavoriteForAzu(ItemDrop.ItemData item)
+        {
+            if (item == null || item.m_shared == null || Player.m_localPlayer == null) return false;
+            Ensure();
+            if (Names.Contains(item.m_shared.m_name)) return true;
+            Inventory inv = Player.m_localPlayer.GetInventory();
+            return inv != null && inv.ContainsItem(item) &&
+                Slots.Contains(item.m_gridPos.y * inv.GetWidth() + item.m_gridPos.x);
         }
 
         internal static bool IsFavoriteSlot(Vector2i pos, Inventory inv)
@@ -145,7 +163,10 @@ namespace Sirroh.Qol
                 ItemDrop.ItemData item = ___m_inventory.GetItemAt(index % width, index / width);
                 bool slot = Slots.Contains(index);
                 bool name = item != null && item.m_shared != null && Names.Contains(item.m_shared.m_name);
-                overlay.enabled = slot || name;
+                // Display favorites from either provider using the same Sirroh border.
+                bool azu = item != null && QolAzuAutoStoreCompatibility.IsAzuFavorite(item, ___m_inventory);
+                if (azu && !slot) name = true;
+                overlay.enabled = slot || name || azu;
                 if (slot && name) overlay.color = new Color(1f, .85f, .25f, 1f);
                 else if (slot) overlay.color = new Color(.45f, .85f, 1f, .92f);
                 else overlay.color = new Color(1f, .72f, .15f, .92f);

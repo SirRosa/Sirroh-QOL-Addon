@@ -3,9 +3,9 @@ import json
 
 root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
-assert len(source) == 16, sorted(source)
+assert len(source) == 17, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.18"' in source["Plugin"]
+assert 'Version = "0.1.19"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -247,3 +247,21 @@ assert 'Shader.Find(LitShaderName)' in source["QolNativeUiLighting"]
 assert 'LitShaderName = "Custom/LitGui"' in source["QolNativeUiLighting"]
 assert "Mathf.Lerp" not in source["QolNativeUiLighting"]
 assert 'Color.clear;' in source["QolStoreSort"]
+
+
+# Azu integration never requires its DLL at build time and cannot disable background storage.
+azu = source["QolAzuAutoStoreCompatibility"]
+assert 'Azumatt.AzuAutoStore' in azu
+assert 'Functions' in azu and '"TryStore", Type.EmptyTypes' in azu
+assert 'if (!UseAzuQuickStack) return false;' in azu
+assert '_callingFromSirroh' in azu
+assert 'AfterAzuFavoriteCheck' in azu
+assert 'GetPlayerConfig' in azu and 'IsItemNameOrSlotFavorited' in azu
+assert 'return !Input.GetKeyDown(KeyCode.Q)' in azu
+assert 'QolQuickStackEngine.Sirroh' in source["Plugin"]
+assert 'QolAzuAutoStoreCompatibility.Install(this);' in source["Plugin"]
+assert 'QolAzuAutoStoreCompatibility.DispatchQuickStack()' in source["QolNearbyInventory"]
+assert 'QolAzuAutoStoreCompatibility.UseAzuQuickStack' in source["QolNearbyInventory"]
+assert 'IsSirrohFavoriteForAzu' in source["QolFavorites"]
+assert 'QolAzuAutoStoreCompatibility.IsAzuFavorite(item, inv)' in source["QolFavorites"]
+assert 'QolAzuAutoStoreCompatibility.IsAzuFavorite(item, ___m_inventory)' in source["QolFavorites"]
