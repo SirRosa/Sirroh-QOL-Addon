@@ -4,13 +4,13 @@ One BepInEx DLL with configurable gameplay, inventory and UI features, including
 
 | Module | Behavior | Safety |
 | --- | --- | --- |
-| Auto Repair | On valid crafting-station interaction, repairs eligible inventory items using the game's own UI repair methods. | Valheim 1.0 false Interact return handled; station check, next-frame GUI, bounded vanilla repairs. |
-| Safe Stamina | Local player spends no stamina when there are no hostile creatures within the configured 25 m radius. | 0.25 s cached enemy scan; squared distances, no NPC or remote-player mutation. |
-| Food Freeze | Food duration pauses while Resting or near a lit fireplace. | Targeted timer patch leaves vanilla food stats and regeneration active. |
-| Glowing Signs | Color-matched emissive text and a soft glow, without the hard dark outline. | HDR face and GLOW_ON on sign-only cached TMP materials; shared fonts unchanged. |
-| Slope Safety | Prevents player sliding when grounded on slopes. | Cancels ApplySlide and compensates slope gravity while idle; leaves swimming, riding, ships and NPCs alone. |
-| Build Camera | B toggles free build camera with no equipped-tool requirement. Scales with Construction skill. | Original player stays fixed; tool swaps do not exit, local-only camera; bounded pickup via vanilla item pickup. |
-| Swimming Equipment | Wield/change equipped items while swimming. | Exact IL call-site substitution in Humanoid.EquipItem, Humanoid.UpdateEquipment and Player.Update; swimming physics and stamina unaffected. |
+On valid crafting-station interaction, repairs eligible inventory items using the game's own UI repair methods. | Valheim 1.0 false Interact return handled; station check, next-frame GUI, bounded vanilla repairs. |
+Local player spends no stamina when there are no hostile creatures within the configured 25 m radius. | 0.25 s cached enemy scan; squared distances, no NPC or remote-player mutation. |
+Food duration pauses while Resting or near a lit fireplace. | Targeted timer patch leaves vanilla food stats and regeneration active. |
+Color-matched emissive text and a soft glow, without the hard dark outline. | HDR face and GLOW_ON on sign-only cached TMP materials; shared fonts unchanged. |
+Prevents player sliding when grounded on slopes. | Cancels ApplySlide and compensates slope gravity while idle; leaves swimming, riding, ships and NPCs alone. |
+B toggles free build camera with no equipped-tool requirement. Scales with Construction skill. | Original player stays fixed; tool swaps do not exit, local-only camera; bounded pickup via vanilla item pickup. |
+Wield/change equipped items while swimming. | Exact IL call-site substitution in Humanoid.EquipItem, Humanoid.UpdateEquipment and Player.Update; swimming physics and stamina unaffected. |
 
 Glowing Signs settings: `EmissionIntensity` (default 1.75), `GlowStrength` (default 0.68), `GlowRadius` (default 0.13). Existing sign materials update when values change; glow/bloom visibility also depends on the game's shader variants and post-processing.\n\nEach module can be toggled in `BepInEx/config/sirro.valheim.qoladdon.cfg`. Modules are installed independently: failure to find an optional game method disables only its hook and is logged.
 
@@ -103,4 +103,3 @@ The user's reference screen is 1920×1080 with marker centers:
 
 Coordinates are converted to screen/Canvas space, scaling uniformly to other screen resolutions. The original Favorite control stays anchored under Weight; Store All stays with it. The supplied wood panel sprite is used as a 9-sliced decorative background, behind the player inventory panel (two separate protruding tabs for separated red vs three lower icons), with no raycasts. UI objects are cached and hidden when inventory closes.
 
-The five new icon files and wood were imported losslessly from the exact user upload, preserving their original transparent 64×64 pixels. A SHA-256 digest check enforces image integrity before build; embedded raw Unity RGBA textures are vertically corrected. This removes the older rescaled 32px/48px icon artwork from active UI. Existing Quickstack/Restock logic and previous QOL modules were not modified.
