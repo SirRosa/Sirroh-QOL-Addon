@@ -57,6 +57,44 @@ for name, x, y in (
     ("favorite",0,64), ("wood",64,64),
 ):
     icon = atlas.crop((x,y,x+64,y+64))
+
+    # Art-only brightness correction, measured against the vanilla side tabs
+    # at nighttime. Keep the source atlas and SHA-256 unchanged.
+    # A gentle gamma curve raises mid/dark RGB values while preserving the
+    # original palette, near-white highlights, per-pixel alpha and dimensions.
+    # Custom/LitGui remains entirely responsible for scene-dependent dimming.
+    original_pixels = icon.tobytes()
+    gamma = {"wood": 0.87, "favorite": 0.94}.get(name, 0.90)
+    curve = [min(255, round(255 * (value / 255) ** gamma))
+             for value in range(256)]
+    red, green, blue, alpha = icon.split()
+    icon = Image.merge("RGBA", (
+        red.point(curve), green.point(curve), blue.point(curve), alpha
+    ))
+    assert icon.getchannel("A").tobytes() == original_pixels[3::4], (
+        "Pixel transparency was modified: " + name
+    )
+
+    def average_luma(blob):
+        # Count visible RGB values only; transparent padding is irrelevant.
+        n = 0
+        total = 0.0
+        for i in range(0, len(blob), 4):
+            if blob[i+3] < 8:
+                continue
+            total += (0.2126 * blob[i] + 0.7152 * blob[i+1]
+                      + 0.0722 * blob[i+2]) * blob[i+3] / 255
+            n += blob[i+3] / 255
+        return total / n if n > 0 else 0
+
+    before = average_luma(original_pixels)
+    after = average_luma(icon.tobytes())
+    assert after > before and after < before * 1.28, (
+        "Art-only lift outside subtle brightness range: " + name
+    )
+    print(f"UI graphic brightness {name}: {before:.1f} -> {after:.1f} "
+          f"(+{(after/before-1)*100:.1f}%, gamma={gamma})")
+
     # Pillow is top-down, UnityEngine.Texture2D.LoadRawTextureData is
     # bottom-up; flip rows here so the on-screen artwork is upright.
     icon = icon.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
