@@ -13,7 +13,7 @@ using Mono.Cecil.Cil;
 
 if (args.Length == 2 && args[0] == "--inspect-vanilla-ui-dimming")
 {
-    using var asm = AssemblyDefinition.ReadAssembly(args[1]);
+    using var dimmingAssembly = AssemblyDefinition.ReadAssembly(args[1]);
     string[] typeNames = { "InventoryGui", "Hud", "EnvMan", "GuiBar", "GuiScaler",
         "GuiInputField", "InventoryGrid", "FejdStartup", "Menu",
         "GameCamera", "Game", "Player", "Minimap", "UITime", "UISettings",
@@ -23,8 +23,8 @@ if (args.Length == 2 && args[0] == "--inspect-vanilla-ui-dimming")
        "SetGlobalColor", "SetGlobalFloat", "GetGlobalColor", "GetGlobalFloat",
        "GetAmbient", "GetLight", "GetSky", "IsNight", "IsDay", "GetCurrentEnvironment",
        "SetGlobalVector", "SetGlobalTexture", "set_material", "set_shader", "get_color" };
-    var types=asm.MainModule.Types;
-    foreach(var type in types.Where(t=>typeNames.Contains(t.Name)))
+    var dimmingTypes=dimmingAssembly.MainModule.Types;
+    foreach(var type in dimmingTypes.Where(t=>typeNames.Contains(t.Name)))
     {
         Console.WriteLine("### TYPE "+type.FullName);
         foreach(var field in type.Fields.Where(f=>
@@ -58,7 +58,7 @@ if (args.Length == 2 && args[0] == "--inspect-vanilla-ui-dimming")
     }
     // Search ALL game code for global shader globals. If Valheim fades the
     // inventory via shader property, this pinpoints the authoritative writer.
-    foreach(var type in types)
+    foreach(var type in dimmingTypes)
         foreach(var method in type.Methods.Where(m=>m.HasBody))
         {
             foreach(var il in method.Body.Instructions)
