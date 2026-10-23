@@ -257,7 +257,7 @@ assert 'if (!UseAzuQuickStack) return false;' in azu
 assert '_callingFromSirroh' in azu
 assert 'AfterAzuFavoriteCheck' in azu
 assert 'GetPlayerConfig' in azu and 'IsItemNameOrSlotFavorited' in azu
-assert 'return !Input.GetKeyDown(KeyCode.Q)' in azu
+assert 'if (Input.GetKeyDown(KeyCode.Q) || _lastSirrohDispatchFrame == Time.frameCount)' in azu
 assert 'QolQuickStackEngine.Sirroh' in source["Plugin"]
 assert 'QolAzuAutoStoreCompatibility.Install(this);' in source["Plugin"]
 assert 'QolAzuAutoStoreCompatibility.DispatchQuickStack()' in source["QolNearbyInventory"]
