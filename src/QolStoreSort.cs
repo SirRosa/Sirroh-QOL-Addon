@@ -33,16 +33,14 @@ namespace Sirroh.Qol
 
         private const float DesignWidth = 1920f;
         private const float DesignHeight = 1080f;
-        private const float ActionX = 645f;
+        // 1920x1080 image evidence only; runtime position uses the actual
+        // Weight side tab and player inventory bounds instead of screen X/Y.
         // Reference layout at 1920x1080: match the existing slim right-hand
         // inventory rail beneath its shield and weight controls. Wood size
         // tracks those tabs; artwork stays smaller than its clickable surface.
         private const float RecycleY = 190f;
         // Screenshot fallback. Runtime placement is taken from actual RectTransforms.
-        private const float SortY = 328f;
-        private const float QuickY = 385f;
-        private const float RestockY = 442f;
-        private const float DefaultRailRight = 684f;
+         private const float DefaultRailRight = 684f;
         private const float DefaultPanelBottom = 475f;
         private const float DefaultWeightBottom = 300f;
         private const float ActionHitSize = 52f;
@@ -265,37 +263,10 @@ namespace Sirroh.Qol
                     ? new Color(1f,1f,.7f,1f) : Color.white;
         }
 
-        // Full-screen reference coordinates from the uploaded 1920x1080 sheet.
-        // Convert via the actual Unity canvas / parent rect, not m_player.localPos.
-        private static Vector2 ScreenPoint(float designX,float designY)
-        {
-            float scale=Mathf.Min(Screen.width/DesignWidth, Screen.height/DesignHeight);
-            float offsetX=(Screen.width-DesignWidth*scale)*.5f;
-            float offsetY=(Screen.height-DesignHeight*scale)*.5f;
-            return new Vector2(offsetX+designX*scale,
-                offsetY+(DesignHeight-designY)*scale);
-        }
-
         private static RectTransform RootFor(RectTransform rt)=>rt.parent as RectTransform;
         private static Camera EventCamera =>
             _canvas != null && _canvas.renderMode != RenderMode.ScreenSpaceOverlay
                 ? _canvas.worldCamera : null;
-
-        internal static void PositionAt(RectTransform rt,float designX,float designY,
-            float designWidth,float designHeight)
-        {
-            if(rt==null)return;
-            RectTransform parent=RootFor(rt);
-            if(parent==null)return;
-            Vector2 local;
-            if(RectTransformUtility.ScreenPointToLocalPointInRectangle(parent,
-                ScreenPoint(designX,designY),EventCamera,out local))
-                rt.anchoredPosition=local;
-            float scale=Mathf.Min(Screen.width/DesignWidth,Screen.height/DesignHeight);
-            float canvasScale=_canvas != null ? Mathf.Max(.01f,_canvas.scaleFactor) : 1f;
-            rt.sizeDelta=new Vector2(designWidth*scale/canvasScale,
-                designHeight*scale/canvasScale);
-        }
 
         private static readonly Vector3[] Corners = new Vector3[4];
         private static bool _warnedLayoutFallback;
@@ -392,7 +363,7 @@ namespace Sirroh.Qol
             // Never allow three wooden buttons to extend beyond the frame.
             // If a replacement GUI leaves too little vertical space, use the
             // conservative reference bounds and still keep the 3 boards inside.
-            if(available<105f*scale)
+            if(available<105f*scale || available>320f*scale)
             {
                 lower=offsetY+(DesignHeight-472f)*scale;
                 upper=offsetY+(DesignHeight-300f)*scale;
