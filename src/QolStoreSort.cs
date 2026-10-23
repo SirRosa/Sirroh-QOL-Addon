@@ -339,6 +339,7 @@ namespace Sirroh.Qol
             float rightEdge=offsetX+DefaultRailRight*scale;
             float playerBottom=offsetY+(DesignHeight-DefaultPanelBottom)*scale;
             float weightBottom=offsetY+(DesignHeight-DefaultWeightBottom)*scale;
+            float weightTop=weightBottom+70f*scale;
             float nativeTabHeight=70f*scale;
             bool dynamic=false;
 
@@ -361,6 +362,7 @@ namespace Sirroh.Qol
                     rightEdge=weightTab.xMax;
                     playerBottom=inventory.yMin;
                     weightBottom=weightTab.yMin;
+                    weightTop=weightTab.yMax;
                     nativeTabHeight=weightTab.height;
                     dynamic=true;
                 }
@@ -411,7 +413,7 @@ namespace Sirroh.Qol
 
             // Recycle remains immediately above Weight, like the existing
             // native recycling bar. Preserve its position relative to Weight.
-            _recycleCenter=new Vector2(centerX,weightBottom+nativeTabHeight*.5f+3f*scale);
+            _recycleCenter=new Vector2(centerX,weightTop+nativeTabHeight*.5f+3f*scale);
             PositionScreen(_recycleWood,_recycleCenter,woodWidth,
                 Mathf.Min(70f*scale,nativeTabHeight));
         }
