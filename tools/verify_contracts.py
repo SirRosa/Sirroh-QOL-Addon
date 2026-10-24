@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 19, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.26"' in source["Plugin"]
+assert 'Version = "0.1.27"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -160,7 +160,7 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.26"
+assert manifest["version_number"] == "0.1.27"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
 
@@ -430,3 +430,27 @@ assert 'int _lastStartFrame' in inv
 assert 'DropOverflowYields' in reclaim
 assert 'if (overflow) return DropOverflowYields' in reclaim
 assert 'GetMaxCarryWeight()' not in reclaim
+
+# 0.1.27: actual per-destination VFX; no Azu config dependency; no false API warnings.
+inventory = source["QolNearbyInventory"]
+cache = source["QolRecipeCache"]
+reclaim = source["QolTrashReclaim"]
+ui = source["QolStoreSort"]
+assert 'ZNetScene.instance.GetPrefab("vfx_Potion_health_medium")' in inventory
+assert 'UnityEngine.Object.Instantiate(_pingPrefab,' in inventory
+assert 'QolChestPingHighlight : MonoBehaviour' in inventory
+assert 'if (_wear != null) _wear.Highlight();' in inventory
+assert 'if (quick) PingQuickStackChest(chest)' in inventory
+assert 'PingChest(chest.gameObject)' not in inventory
+assert 'LocalizationType.GetField("instance", LocalizationStatic)' in inventory
+assert 'LocalizationType.GetProperty("instance", LocalizationStatic)' in inventory
+assert 'AccessTools.Field(LocalizationType, "instance")' not in inventory
+assert 'typeof(ObjectDB).GetMethods(' in cache
+assert 'AccessTools.Method(typeof(ObjectDB), mutations[i])' not in cache
+assert 'new GameObject(name, typeof(RectTransform));' in reclaim
+assert 'go.SetActive(false);' in reclaim
+assert 'TMP_FontAsset font' in reclaim
+assert 'if (font != null) t.font = font;' in reclaim
+assert 'go.SetActive(true);' in reclaim
+assert 'Log.LogDebug("TrashReclaim: no usable recipe' in reclaim
+assert 'Log.LogInfo(' in ui

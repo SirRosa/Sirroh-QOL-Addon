@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using HarmonyLib;
 
 namespace Sirroh.Qol
@@ -21,13 +22,17 @@ namespace Sirroh.Qol
             // Only invalidate on a database lifecycle event. Build lazily on reclaim,
             // after all other mods have had a chance to register their recipes.
             string[] mutations = { "Awake", "CopyOtherDB", "UpdateRecipes" };
+            MethodInfo[] methods = typeof(ObjectDB).GetMethods(
+                BindingFlags.Instance | BindingFlags.Static |
+                BindingFlags.Public | BindingFlags.NonPublic);
+            MethodInfo invalidate = AccessTools.Method(typeof(QolRecipeCache), nameof(Invalidate));
             for (int i = 0; i < mutations.Length; i++)
-            {
-                var method = AccessTools.Method(typeof(ObjectDB), mutations[i]);
-                if (method != null)
-                    host.Patch("ReclaimCache." + mutations[i], method,
-                        postfix: AccessTools.Method(typeof(QolRecipeCache), nameof(Invalidate)));
-            }
+                for (int j = 0; j < methods.Length; j++)
+                    if (methods[j].Name == mutations[i] && methods[j].ReturnType == typeof(void))
+                        host.Patch("ReclaimCache." + mutations[i], methods[j],
+                            postfix: invalidate);
+            // UpdateRecipes does not exist in some Valheim 1.0 builds.
+            // Its absence is normal and must not emit an AccessTools warning.
         }
 
         private static void Invalidate() { _dirty = true; }

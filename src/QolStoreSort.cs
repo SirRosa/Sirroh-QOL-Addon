@@ -369,8 +369,10 @@ namespace Sirroh.Qol
             if(!dynamic && !_warnedLayoutFallback)
             {
                 _warnedLayoutFallback=true;
-                Plugin.Instance?.Log.LogWarning(
-                    "QOL icons: Weight/tab bounds not usable; using 1920x1080 proportional rail layout.");
+                // The reference layout is an intentional supported fallback
+                // when a UI overhaul replaces the native Weight tab geometry.
+                Plugin.Instance?.Log.LogInfo(
+                    "QOL icons: native Weight/tab geometry replaced; using reference proportional rail layout.");
             }
 
             // Native exposed right edge is the authority. Extend wood LEFT

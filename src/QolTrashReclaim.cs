@@ -124,7 +124,7 @@ namespace Sirroh.Qol
             ReclaimResult result = TryReclaim(item, from, count);
             if (result == ReclaimResult.Unsupported)
             {
-                _host?.Log.LogWarning("TrashReclaim: no usable recipe for prefab '" +
+                _host?.Log.LogDebug("TrashReclaim: no usable recipe for prefab '" +
                     (item.m_dropPrefab != null ? item.m_dropPrefab.name : "(null)") +
                     "', shared '" + item.m_shared.m_name + "', quality " + item.m_quality +
                     ", custom fields " + (item.m_customData?.Count ?? 0) +
@@ -392,18 +392,27 @@ namespace Sirroh.Qol
         private static void AddText(string name, RectTransform parent, string text,
             Vector2 at, Vector2 size, float fontSize)
         {
-            GameObject go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
+            // Delay TMP OnEnable until a valid in-game font has been assigned.
+            // Otherwise TMP attempts to load missing LiberationSans fallback.
+            GameObject go = new GameObject(name, typeof(RectTransform));
+            go.SetActive(false);
             go.transform.SetParent(parent, false);
+            TextMeshProUGUI t = go.AddComponent<TextMeshProUGUI>();
             RectTransform rt = go.GetComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(.5f,.5f);
             rt.anchoredPosition = at;
             rt.sizeDelta = size;
-            TextMeshProUGUI t = go.GetComponent<TextMeshProUGUI>();
+            InventoryGui gui = InventoryGui.instance;
+            TMP_FontAsset font = gui?.m_playerName != null ? gui.m_playerName.font : null;
+            if (font == null && gui?.m_recipeName != null) font = gui.m_recipeName.font;
+            if (font == null && gui?.m_craftingStationName != null)
+                font = gui.m_craftingStationName.font;
+            if (font != null) t.font = font;
             t.text = text;
             t.fontSize = fontSize;
             t.alignment = TextAlignmentOptions.Center;
             t.raycastTarget = false;
-            if (InventoryGui.instance.m_playerName != null) t.font = InventoryGui.instance.m_playerName.font;
+            go.SetActive(true);
         }
 
         private static void AddButton(RectTransform parent, string label, Vector2 at, Action action)

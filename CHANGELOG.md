@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.27
+- Fix Sirroh QuickStack chest VFX failing because Azu's optional PingContainer is gated by external settings/existing components: directly instantiate the identical vfx_Potion_health_medium per modified destination and temporarily highlight WearNTear.
+- Eliminate Harmony missing-field warning for Localization.instance by resolving field/property once with normal reflection.
+- Avoid probing missing ObjectDB.UpdateRecipes with noisy Harmony AccessTools: enumerate only existing lifecycle hooks.
+- Fix Reclaim confirmation's missing TMP font warning by assigning a native InventoryGui font before activating text controls.
+- Downgrade expected non-craftable-item Reclaim diagnostics to Debug, and intentional 1920x1080 proportional fallback to Info.
+- Other mods' warnings and unidentified RPC method hashes are unchanged.
+
+
 ## 0.1.26
 - Fixed empty-inventory Reclaim failures caused by confusing character weight with inventory capacity; Valheim allows overweight inventory.
 - When the true slot limit is exceeded, safely stage and drop up to 64 returned material stacks beside the player, then remove the source. Rollback staged objects on failure. No spawning on normal reclaim.

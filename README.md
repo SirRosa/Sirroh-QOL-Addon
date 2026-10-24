@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.26 (test release)
+# Sirroh QOL Addon — 0.1.27 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 
@@ -230,3 +230,24 @@ The previous Unity `Outline` multiplied the 19px Favorite star silhouette into f
   Actual slot overflow stages up to 64 item stacks on the ground before
   removing the source; aborts safely when staging fails.
 - Runtime tests with Sirro Overhaul custom gear and Azu are still required.
+
+## 0.1.27: QuickStack VFX and attributable console warnings
+
+- Sirroh's QuickStack now creates the SAME game `vfx_Potion_health_medium`
+  effect directly at each modified destination, independently of Azu's
+  optional ping setting or pre-existing Azu ping components. Successful
+  chests are highlighted for four seconds using WearNTear.Highlight().
+  Both effects are triggered only on actual transfers, not per-frame scans.
+- Valheim 1.0 Localization.instance can be a PROPERTY rather than a FIELD.
+  Use a cached silent reflection lookup for both forms (no Harmony warning).
+- Recipe cache hooks enumerate existing ObjectDB methods at install time
+  without warning for absent optional methods such as UpdateRecipes.
+- Reclaim confirmation TMP text is created while inactive, assigned
+  an actual existing InventoryGui font, and activated afterward.
+- Expected non-craftable inventory items (e.g. raw smelted iron) no longer
+  generate warnings: the deletion confirmation still appears, with detailed
+  diagnosis available in debug logs.
+- The inventory UI's proportional reference rail is a supported fallback
+  with ZenUI and other overhauls; log it at Info rather than Warning.
+- Unidentified `Failed to find rpc method 327122920` is NOT attributed
+  to this mod on the supplied evidence and is intentionally NOT changed.

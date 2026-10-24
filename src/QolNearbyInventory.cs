@@ -35,8 +35,16 @@ namespace Sirroh.Qol
         private static int _lastStartFrame = -1;
         private static GameObject _pingPrefab;
         private static readonly Type LocalizationType = AccessTools.TypeByName("Localization");
+        // On Valheim 1.0 Localization.instance is a property on the client,
+        // not necessarily a field. Probe both forms without Harmony's
+        // missing-member warnings, once at startup.
+        private const BindingFlags LocalizationStatic = BindingFlags.Static |
+            BindingFlags.Public | BindingFlags.NonPublic;
         private static readonly FieldInfo LocalizationSingleton = LocalizationType == null ? null :
-            AccessTools.Field(LocalizationType, "instance");
+            LocalizationType.GetField("instance", LocalizationStatic);
+        private static readonly PropertyInfo LocalizationProperty = LocalizationType == null ? null :
+            (LocalizationType.GetProperty("instance", LocalizationStatic) ??
+             LocalizationType.GetProperty("Instance", LocalizationStatic));
         private static readonly MethodInfo LocalizationMethod = FindLocalizationMethod();
         private static float _nextKey;
 
@@ -446,10 +454,12 @@ namespace Sirroh.Qol
 
         private static string LocalizeItem(string name)
         {
-            if (LocalizationMethod == null || LocalizationSingleton == null) return name;
+            if (LocalizationMethod == null ||
+                (LocalizationSingleton == null && LocalizationProperty == null)) return name;
             try
             {
-                object locale = LocalizationSingleton.GetValue(null);
+                object locale = LocalizationSingleton != null ? LocalizationSingleton.GetValue(null) :
+                    LocalizationProperty.GetValue(null, null);
                 return locale == null ? name :
                     LocalizationMethod.Invoke(locale, new object[] { name }) as string ?? name;
             }
