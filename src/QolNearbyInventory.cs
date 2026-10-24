@@ -456,42 +456,53 @@ namespace Sirroh.Qol
             catch { return name; }
         }
 
+        private static bool _missingQuickVfxReported;
+
         private static void PingQuickStackChest(Container chest)
         {
             if (chest == null) return;
-            // When Azu is installed, use its actual configured PingContainer
-            // (both its VFX and chest highlight) instead of approximating it.
-            if (!QolAzuAutoStoreCompatibility.PingChest(chest.gameObject))
-            {
-                try
-                {
-                    if (ZNetScene.instance != null)
-                    {
-                        if (_pingPrefab == null)
-                            _pingPrefab = ZNetScene.instance.GetPrefab("vfx_Potion_health_medium");
-                        if (_pingPrefab != null)
-                        {
-                            GameObject effect = UnityEngine.Object.Instantiate(_pingPrefab,
-                                chest.transform.position, Quaternion.identity);
-                            if (effect != null) UnityEngine.Object.Destroy(effect, 10f);
-                        }
-                    }
-                }
-                catch (Exception error)
-                {
-                    _host?.Log.LogDebug("QuickStack chest ping: " + error.Message);
-                }
-            }
+            // Azu's PingContainer() silently does NOTHING if its separate
+            // Ping Containers setting is disabled or an existing ping component
+            // is still alive. Sirroh's explicit QuickStack must always show
+            // feedback on every modified destination, independent of Azu.
             try
             {
-                if (InventoryGui.instance != null &&
-                    QolGameAccess.CurrentContainer(InventoryGui.instance) != chest)
-                    InventoryGui.instance.m_moveItemEffects.Create(chest.transform.position,
+                if (ZNetScene.instance != null)
+                {
+                    if (_pingPrefab == null)
+                        _pingPrefab = ZNetScene.instance.GetPrefab("vfx_Potion_health_medium");
+                    if (_pingPrefab != null)
+                    {
+                        // Use the SAME source prefab as Azu, but spawn the effect
+                        // directly at the successful destination, not via Azu's
+                        // configuration-gated optional component.
+                        GameObject visual = UnityEngine.Object.Instantiate(_pingPrefab,
+                            chest.transform.position + Vector3.up * 0.35f,
+                            Quaternion.identity);
+                        if (visual != null) UnityEngine.Object.Destroy(visual, 10f);
+                    }
+                    else if (!_missingQuickVfxReported)
+                    {
+                        _missingQuickVfxReported = true;
+                        _host?.Log.LogWarning("QuickStack VFX: vfx_Potion_health_medium prefab unavailable.");
+                    }
+                }
+
+                // Azu also highlights the chest for several seconds. Add an
+                // equivalent short-lived native WearNTear highlight on demand.
+                QolChestPingHighlight glow = chest.GetComponent<QolChestPingHighlight>();
+                if (glow == null) glow = chest.gameObject.AddComponent<QolChestPingHighlight>();
+                glow.Trigger();
+
+                // Native move-item effect, once per changed container.
+                InventoryGui gui = InventoryGui.instance;
+                if (gui != null && QolGameAccess.CurrentContainer(gui) != chest)
+                    gui.m_moveItemEffects.Create(chest.transform.position,
                         Quaternion.identity, null, 1f, -1, default(ZDOID));
             }
             catch (Exception error)
             {
-                _host?.Log.LogDebug("QuickStack move effect: " + error.Message);
+                _host?.Log.LogWarning("QuickStack destination VFX: " + error.Message);
             }
         }
 
@@ -540,6 +551,23 @@ namespace Sirroh.Qol
             Wanted.Clear(); PlayerItems.Clear(); ClearContentIndex(); ListPool.Clear();
         }
     }
+    // Active only for a few seconds after a successful QuickStack deposit.
+    // No additional scanning, polling or persistent Update components.
+    internal sealed class QolChestPingHighlight : MonoBehaviour
+    {
+        private WearNTear _wear;
+        private float _until;
+
+        private void Awake() { _wear = GetComponent<WearNTear>(); }
+        internal void Trigger() { _until = Time.time + 4f; }
+
+        private void Update()
+        {
+            if (Time.time >= _until) { Destroy(this); return; }
+            if (_wear != null) _wear.Highlight();
+        }
+    }
+
     internal sealed class QolChestTracker : MonoBehaviour
     {
         private Container _container;
