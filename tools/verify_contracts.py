@@ -208,7 +208,7 @@ assert '_outline.enabled = !_isFavorite && _hovered;' in ui
 assert '_favoriteHalo.enabled = activeFavorite || _hovered;' in ui
 assert 'new Color(1f, .80f, .43f, .78f)' in ui
 assert 'new Vector2(1.6f, 1.6f)' in ui
-assert '_normalScale * 1.08f' in ui
+assert '_normalScale * 1.06f' in ui
 assert 'new Color(1f, .96f, .73f, 1f)' in ui
 assert 'AddComponent<Shadow>()' not in ui
 assert 'AddComponent<Outline>()' in ui
