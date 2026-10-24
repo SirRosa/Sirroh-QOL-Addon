@@ -119,7 +119,7 @@ jobs:
         run: |
           python3 -m pip install --user --quiet Pillow
           python3 tools/generate_qol_assets.py
-          test $(find .build-refs/assets -name '*.rgba' | wc -l) -eq 11
+          test $(find .build-refs/assets -name '*.rgba' | wc -l) -eq 12
       - name: Research vanilla UI night-darkness pipeline
         shell: bash
         run: |
@@ -177,6 +177,6 @@ jobs:
       - name: Upload compiled package
         uses: actions/upload-artifact@v4
         with:
-          name: SirrohQOLAddon-0.1.22-Thunderstore
-          path: SirrohQOLAddon-0.1.22-Thunderstore.zip
+          name: SirrohQOLAddon-0.1.23-Thunderstore
+          path: SirrohQOLAddon-0.1.23-Thunderstore.zip
           if-no-files-found: error

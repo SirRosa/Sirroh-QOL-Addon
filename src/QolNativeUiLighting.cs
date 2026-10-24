@@ -165,6 +165,14 @@ namespace Sirroh.Qol
         private static void Apply(Image image, bool wood)
         {
             if (image == null) return;
+            // Explicitly preserve unlit/emission-like Favorite editing state
+            // if the inventory rebuild triggers another LitGui Sync.
+            if (!wood && QolFavorites.FavoriteMode &&
+                image.sprite == QolFavorites.FavoriteGoldIcon)
+            {
+                image.material = null;
+                return;
+            }
             Material material = wood ? _woodLitMaterial :
                 (image.sprite != null && image.sprite == QolFavorites.FavoriteIcon
                     ? _favoriteLitMaterial : _glyphLitMaterial);

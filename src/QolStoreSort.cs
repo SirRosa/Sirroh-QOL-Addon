@@ -138,7 +138,7 @@ namespace Sirroh.Qol
             _favoriteImage = _favoriteButton.transform.Find("Icon").GetComponent<Image>();
             _favoriteHover = _favoriteButton.GetComponent<QolIconHover>();
             // A 17px star fits inside the 27x33px metal armor-shield icon.
-            _favoriteImage.rectTransform.sizeDelta = new Vector2(17f,17f);
+            _favoriteImage.rectTransform.sizeDelta = new Vector2(19f,19f);
             _storeButton = MakeSmallButton(fav,"Store All",QolFavorites.QuickIcon,4,
                 QolNearbyInventory.StartStoreCurrent);
 
@@ -544,25 +544,50 @@ namespace Sirroh.Qol
         internal void Refresh()
         {
             if (_graphic == null) return;
+            bool activeFavorite = _isFavorite && QolFavorites.FavoriteMode;
             if (_isFavorite)
             {
-                // Bronze when inactive; gold on hover or in Favorite mode.
-                bool gold = _hovered || QolFavorites.FavoriteMode;
-                _graphic.color = gold
-                    ? new Color(1f, .96f, .76f, 1f)
-                    : new Color(1f, .78f, .52f, 1f);
+                if (activeFavorite && QolFavorites.FavoriteGoldIcon != null)
+                {
+                    // Image.color is MULTIPLICATIVE and cannot transform the
+                    // dark pixels of the bronze asset to fully gold.
+                    if (_graphic.sprite != QolFavorites.FavoriteGoldIcon)
+                        _graphic.sprite = QolFavorites.FavoriteGoldIcon;
+                    _graphic.color = Color.white;
+                    // Unity UI/Default is unlit: emission-like visibility
+                    // only while editing favorites, without global changes.
+                    _graphic.material = null;
+                }
+                else
+                {
+                    if (_graphic.sprite != QolFavorites.FavoriteIcon)
+                        _graphic.sprite = QolFavorites.FavoriteIcon;
+                    _graphic.color = _hovered
+                        ? new Color(1f, .94f, .72f, 1f)
+                        : new Color(1f, .78f, .52f, 1f);
+                    QolNativeUiLighting.Apply(_graphic);
+                }
             }
             else
             {
-                // An obvious but restrained warm highlight. A .89->1.0
-                // neutral tint by itself was too hard to see in LitGui at night.
                 _graphic.color = _hovered
                     ? new Color(1f, .96f, .73f, 1f)
                     : new Color(.89f, .89f, .89f, 1f);
             }
-            if (_outline != null) _outline.enabled = _hovered;
-            _graphic.rectTransform.localScale =
-                _hovered ? _normalScale * 1.08f : _normalScale;
+            if (_outline != null)
+            {
+                // The persistent halo identifies edit mode without hovering.
+                _outline.enabled = _hovered || activeFavorite;
+                _outline.effectColor = activeFavorite
+                    ? new Color(1f, .78f, .18f, .95f)
+                    : new Color(1f, .80f, .43f, .70f);
+                _outline.effectDistance = activeFavorite
+                    ? new Vector2(2.5f, 2.5f)
+                    : new Vector2(1.6f, 1.6f);
+            }
+            _graphic.rectTransform.localScale = activeFavorite
+                ? _normalScale * (_hovered ? 1.18f : 1.12f)
+                : (_hovered ? _normalScale * 1.08f : _normalScale);
         }
 
         public void OnPointerEnter(PointerEventData eventData)

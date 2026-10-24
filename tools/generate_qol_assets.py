@@ -102,3 +102,17 @@ for name, x, y in (
     assert len(output) == 8+64*64*4
     (out / ("ui_"+name+".rgba")).write_bytes(output)
     print("User supplied exact UI:",name,"64x64 (lossless)")
+
+    if name == "favorite":
+        # Second sprite for active Favorite: 100% gold RGB for every visible
+        # pixel; exact original 64x64 star silhouette/alpha is unchanged.
+        gold = Image.new("RGBA", (64, 64), (255, 208, 52, 0))
+        gold.putalpha(icon.getchannel("A"))
+        assert gold.getchannel("A").tobytes() == icon.getchannel("A").tobytes()
+        assert all(px[:3] == (255, 208, 52)
+                   for px in gold.getdata() if px[3] > 0)
+        gold_raw = struct.pack("<II", 64, 64) + gold.tobytes()
+        assert len(gold_raw) == 8+64*64*4
+        (out / "ui_favorite_gold.rgba").write_bytes(gold_raw)
+        print("Full-gold Favorite editing sprite: 64x64, exact source alpha")
+
