@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.25
+- Lazy prefab-first recipe cache plus fallback to the Valheim recipe registry and shared item names. Cached across reclaim operations and invalidated when ObjectDB/recipe list changes.
+- Handle dynamically registered mod recipes and upgrade-only material requirements. Aggregate duplicate yield prefabs before adding materials.
+- Epic Loot: official optional API integration (rarity + actual enchant costs), with once-bound delegates and on-demand JSON decoding.
+- Jewelcrafting: optional API integration for socketed gems; return corresponding prefab items.
+- Abort with source preserved on unresolved external material/API errors; no new per-frame work.
+
+
 ## 0.1.24
 - Fix overlapping/misaligned Favorite stars caused by Unity UI Outline creating four offset copies of the 19px star mesh (particularly the 2.5px active-state outline). Never add Outline to Favorite; disable any stale one.
 - Draw exactly ONE existing source-alpha gold star and a separate, smooth, circular gold gradient behind it. The gradient is a cached 64x64 raw resource displayed at 30x30, with zero alpha at its edges; unlike Outline it does not duplicate the star silhouette. No per-frame processing or raycasts.

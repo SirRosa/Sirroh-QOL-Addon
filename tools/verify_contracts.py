@@ -3,9 +3,9 @@ import json
 
 root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
-assert len(source) == 17, sorted(source)
+assert len(source) == 19, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.24"' in source["Plugin"]
+assert 'Version = "0.1.25"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -130,9 +130,10 @@ assert (684 - (84/2) + 84/2) == 684
 assert "private const float ActionHitSize = 52f" in source["QolStoreSort"]
 assert "ActionIconInset = 9f" in source["QolStoreSort"]
 assert "new Vector2(9f,9f)" in source["QolTrashReclaim"]
-assert "private static string PrefabId" in source["QolTrashReclaim"]
-assert "db.GetRecipe(item)" in source["QolTrashReclaim"]
-assert "Recipe prefabMatch = null" in source["QolTrashReclaim"]
+assert "QolRecipeCache.Find(item)" in source["QolTrashReclaim"]
+assert "db.GetRecipe(item)" in source["QolRecipeCache"]
+assert "ByPrefab.TryGetValue(prefab, out Recipe exact)" in source["QolRecipeCache"]
+assert "BySharedName.TryGetValue" in source["QolRecipeCache"]
 assert "if (item.m_customData != null && item.m_customData.Count > 0)" not in source["QolTrashReclaim"]
 assert "PositionRecycle(_buttonRect)" in source["QolTrashReclaim"]
 assert "QolFavorites.FavoriteIcon,0,ToggleFavorite" in source["QolStoreSort"]
@@ -159,7 +160,7 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.24"
+assert manifest["version_number"] == "0.1.25"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
 
@@ -383,3 +384,25 @@ assert 'if (image.sprite == QolFavorites.FavoriteHaloIcon)' in lighting
 assert 'image.material = null;' in lighting
 assert 'new Vector2(19f,19f)' in ui
 assert 'new Vector2(30f, 30f)' in ui
+
+# Low-allocation reclaim extension and recipe-cache regressions.
+cache = source["QolRecipeCache"]
+extension = source["QolReclaimExtensions"]
+reclaim = source["QolTrashReclaim"]
+assert "for (int i = 0; i < length; i++)" in cache
+assert "if (!_dirty && ReferenceEquals(db, _source)" in cache
+assert "string[] mutations" in cache
+assert "private static void Invalidate()" in cache
+assert "QolRecipeCache.Install(host);" in reclaim
+assert "QolReclaimExtensions.Collect(item, count, AppendYield)" in reclaim
+assert "YieldIndices.TryGetValue" in reclaim
+assert "res.m_upgraderResource ? highest + 1 : 1" in reclaim
+assert "randyknapp.mods.epicloot" in extension and "GetEnchantCostsJson" in extension
+assert "TryGetRarity" in extension and "Delegate.CreateDelegate" in extension
+assert "org.bepinex.plugins.jewelcrafting" in extension
+assert '"Jewelcrafting.API, Jewelcrafting"' in extension
+assert '"GetGems"' in extension and "gemPrefab" in extension
+assert "MemoryStream(Encoding.UTF8.GetBytes(json))" in extension
+assert "return false; // Abort without modifying the inventory." in extension
+assert "QolReclaimExtensions.Shutdown();" in reclaim
+assert "QolRecipeCache.Shutdown();" in reclaim

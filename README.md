@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.24 (test release)
+# Sirroh QOL Addon — 0.1.25 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 
@@ -194,3 +194,22 @@ This is an emission-like **unlit UI** effect, not a new HDR emission/bloom shade
 ## v0.1.24 — one Favorite star, no displaced duplicate outlines
 
 The previous Unity `Outline` multiplied the 19px Favorite star silhouette into four offset vertex copies. This looked like several misaligned gold stars. Favorite now has **no UI Outline component**. The unlit solid gold sprite remains intact and a separate 30px circular radial alpha-gradient behind the single gold star produces a soft glow in active editing mode. On hover without editing there is only a weak halo; the icon remains original bronze with native `Custom/LitGui` dimming. Active gold remains visible at night. The halo uses one 64px alpha-blended texture (not the star silhouette), is not clickable, cached, and uses zero per-frame computations. The normal Sort/Quickstack/Restock/Recycle hover outlines are unchanged. Favorite persists/synchronizes exactly as before, including AzuAutoStore support.
+
+## Reclaim recipe caching and extensions (0.1.25)
+
+- Single lazy cache indexed first by exact item prefab, then by shared name;
+  on lookup misses, it also consults the registered ObjectDB.GetRecipe.
+  Build once per database lifecycle / content change, never per frame.
+- Base and modded crafting recipes are handled, including the separate
+  upgrader-only materials recognized by m_upgraderResource.
+- Epic Loot optional bridge: stable EpicLoot.API IsMagicItem / TryGetRarity /
+  GetEnchantCostsJson. Jewelcrafting optional bridge: Jewelcrafting.API GetGems.
+  Returns 100% of the resolved enchanting costs and one prefab per socketed gem.
+- External provider calls occur ONLY on user-initiated Reclaim. Typed delegates
+  for Epic Loot are bound once, with JSON parsed only for magic equipment.
+  Materials are merged by prefab before capacity/weight checks.
+- If a required external resource is missing, the operation aborts rather than
+  consuming magical/socketed equipment without an adequate refund.
+- A mod replacing a recipe in-place without changing ObjectDB lifecycle,
+  count, first or last references may require a world reload to rebuild cache.
+- Recycle_N_Reclaim compatibility has not yet been implemented.

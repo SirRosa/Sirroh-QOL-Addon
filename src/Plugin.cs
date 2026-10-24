@@ -9,10 +9,12 @@ namespace Sirroh.Qol
 {
     [BepInPlugin(Guid, "Sirroh QOL Addon", Version)]
     [BepInDependency("sirro.valheim.pracafizyczna", "0.22.65")]
+    [BepInDependency("randyknapp.mods.epicloot", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("org.bepinex.plugins.jewelcrafting", BepInDependency.DependencyFlags.SoftDependency)]
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "sirro.valheim.qoladdon";
-        public const string Version = "0.1.24";
+        public const string Version = "0.1.25";
         internal static Plugin Instance;
         internal ManualLogSource Log => Logger;
         private Harmony _harmony;

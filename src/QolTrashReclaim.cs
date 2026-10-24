@@ -18,7 +18,8 @@ namespace Sirroh.Qol
         private static int _pendingAmount;
         private static readonly List<Yield> Yields = new List<Yield>(12);
         private static readonly Dictionary<string,int> FreeReserved = new Dictionary<string,int>(StringComparer.Ordinal);
-        private static readonly Dictionary<string,int> FinalAmount = new Dictionary<string,int>(StringComparer.Ordinal);
+        private static readonly Dictionary<string,int> YieldIndices = new Dictionary<string,int>(StringComparer.Ordinal);
+        private static readonly Action<GameObject, ItemDrop.ItemData, int> AppendYield = AddYield;
 
         private struct Yield
         {
@@ -33,6 +34,7 @@ namespace Sirroh.Qol
         internal static void Install(Plugin host)
         {
             _host = host;
+            QolRecipeCache.Install(host);
             host.Patch("TrashReclaim.GUI.Show", AccessTools.Method(typeof(InventoryGui), "Show"),
                 postfix: AccessTools.Method(typeof(QolTrashReclaim), nameof(Show)));
             host.Patch("TrashReclaim.GUI.Hide", AccessTools.Method(typeof(InventoryGui), "Hide"),
@@ -166,14 +168,14 @@ namespace Sirroh.Qol
             // when made by an ordinary recipe. It MUST NOT be mistaken for
             // an item without a crafting recipe. Base ingredients can still
             // be recovered. Mod-specific enchantment costs are separate.
-            Recipe recipe = FindRecipe(item);
+            Recipe recipe = QolRecipeCache.Find(item);
             if (recipe == null || recipe.m_resources == null || recipe.m_resources.Length == 0 ||
                 recipe.m_amount < 1 || count % recipe.m_amount != 0)
                 return ReclaimResult.Unsupported;
 
             Yields.Clear();
             FreeReserved.Clear();
-            FinalAmount.Clear();
+            YieldIndices.Clear();
             int batches = count / recipe.m_amount;
             var received = new List<Yield>();
             try
@@ -187,15 +189,19 @@ namespace Sirroh.Qol
                         ObjectDB.instance.GetItemPrefab(resource.m_shared);
                     if (prefab == null) return ReclaimResult.Unsupported;
                     int perBatch = 0;
-                    int quality = Math.Max(1, Math.Min(item.m_quality, item.m_shared.m_maxQuality));
-                    for (int q = 1; q <= quality; q++) perBatch += Math.Max(0, res.GetAmount(q));
+                    int highest = Math.Max(1, item.m_shared.m_maxQuality);
+                    int from = res.m_upgraderResource ? highest + 1 : 1;
+                    int to = res.m_upgraderResource ? item.m_quality :
+                        Math.Min(item.m_quality, highest);
+                    for (int q = from; q <= to; q++)
+                        perBatch = checked(perBatch + Math.Max(0, res.GetAmount(q)));
                     int qty = checked(perBatch * batches);
-                    if (qty <= 0) continue;
-                    string name = resource.m_shared.m_name;
-                    if (FinalAmount.TryGetValue(name, out int prev)) FinalAmount[name] = checked(prev + qty);
-                    else FinalAmount[name] = qty;
-                    Yields.Add(new Yield { Prefab=prefab, Data=resource, Name=name, Count=qty });
+                    if (qty > 0) AddYield(prefab, resource, qty);
                 }
+                // Gather additional resources only once, on explicit Reclaim.
+                // A missing required extension material aborts the operation.
+                if (!QolReclaimExtensions.Collect(item, count, AppendYield))
+                    return ReclaimResult.Error;
                 if (Yields.Count == 0) return ReclaimResult.Unsupported;
 
                 // Full capacity simulation across all materials, not
@@ -261,65 +267,22 @@ namespace Sirroh.Qol
             _host?.Log.LogWarning("TrashReclaim: rolled back resource returns after insertion failure.");
         }
 
-        // Compare prefab identity FIRST. Display names are often duplicated
-        // or replaced by armor/enchantment/localization mods.
-        private static string PrefabId(string name)
+        private static void AddYield(GameObject prefab, ItemDrop.ItemData data, int count)
         {
-            if (string.IsNullOrEmpty(name)) return null;
-            string id = name.Trim();
-            const string clone = "(Clone)";
-            if (id.EndsWith(clone, StringComparison.Ordinal))
-                id = id.Substring(0,id.Length-clone.Length).TrimEnd();
-            return id;
-        }
-
-        private static bool HasResources(Recipe recipe)
-        {
-            return recipe != null && recipe.m_item != null &&
-                recipe.m_item.m_itemData != null && recipe.m_amount > 0 &&
-                recipe.m_resources != null && recipe.m_resources.Length > 0;
-        }
-
-        private static Recipe FindRecipe(ItemDrop.ItemData item)
-        {
-            ObjectDB db = ObjectDB.instance;
-            if (db == null || db.m_recipes == null || item == null ||
-                item.m_shared == null) return null;
-            string targetPrefab = item.m_dropPrefab != null
-                ? PrefabId(item.m_dropPrefab.name) : null;
-            Recipe prefabMatch = null, sharedNameMatch = null;
-            foreach (Recipe recipe in db.m_recipes)
+            // Merge duplicate resources from crafting, enchantment and sockets.
+            // One reservation and one insertion per unique item prefab.
+            string key = prefab.name;
+            if (YieldIndices.TryGetValue(key, out int index))
             {
-                if (!HasResources(recipe)) continue;
-                string candidate = PrefabId(recipe.m_item.gameObject.name);
-                bool samePrefab = targetPrefab != null &&
-                    string.Equals(candidate,targetPrefab,StringComparison.Ordinal);
-                if (samePrefab)
-                {
-                    if (prefabMatch == null || recipe.m_amount < prefabMatch.m_amount)
-                        prefabMatch = recipe;
-                    continue;
-                }
-                // Last resort for items whose dropPrefab is unavailable.
-                if (recipe.m_item.m_itemData.m_shared != null &&
-                    recipe.m_item.m_itemData.m_shared.m_name == item.m_shared.m_name &&
-                    (sharedNameMatch == null || recipe.m_amount < sharedNameMatch.m_amount))
-                    sharedNameMatch = recipe;
+                Yield current = Yields[index];
+                current.Count = checked(current.Count + count);
+                Yields[index] = current;
             }
-            if (prefabMatch != null) return prefabMatch;
-
-            // ObjectDB uses its own registered recipe lookup for some modded
-            // items that aren't discoverable by prefab name.
-            try
+            else
             {
-                Recipe fromDb = db.GetRecipe(item);
-                if (HasResources(fromDb)) return fromDb;
+                YieldIndices[key] = Yields.Count;
+                Yields.Add(new Yield { Prefab = prefab, Data = data, Name = data.m_shared.m_name, Count = count });
             }
-            catch (Exception ex)
-            {
-                _host?.Log.LogDebug("TrashReclaim: ObjectDB.GetRecipe fallback: "+ex.Message);
-            }
-            return sharedNameMatch;
         }
 
         private static void ShowConfirmation(ItemDrop.ItemData item, Inventory source, int amount)
@@ -398,6 +361,8 @@ namespace Sirroh.Qol
 
         internal static void Shutdown()
         {
+            QolRecipeCache.Shutdown();
+            QolReclaimExtensions.Shutdown();
             ClearDialog();
             if (_buttonObject != null) UnityEngine.Object.Destroy(_buttonObject);
             _buttonObject = null; _buttonRect = null;
