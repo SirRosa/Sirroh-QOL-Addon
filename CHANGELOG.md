@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.23
+- Fully golden Favorite in edit mode: create an additional 64x64 solid RGB(255,208,52) sprite from the exact alpha of the existing Favorite artwork (no new image generated and no change to the original bronze sprite).
+- Editing ON uses the full gold sprite on Unity UI/Default (unlit, emission-like), with a persistent gold halo; normal hover does not switch to the full-gold sprite. Editing OFF returns to the bronze image with native LitGui shader/dimming and no persistent halo. Increase shield star from 17px to 19px for legibility.
+- Adds exactly one embedded image resource (12 total). CI verifies resource completeness, matching alpha and consistent mode handling. No per-frame polling, new gameplay options, changes to favorite storage/Azu support, other UI elements or game systems.
+
 ## 0.1.22
 - Normalize Recycle button geometry to match Sort, Quickstack and Restock: identical 52x52 clickable area and 34x34 icon artwork, centered with 9px inset. The Recycle wooden background matches the other buttons' height, instead of following the taller 70px Weight tab. Keep right-edge alignment and its position above Weight.
 - Replace almost invisible 1px, alpha=.22 one-directional Unity UI Shadow with an outlined, warm-gold, four-sided highlight on the existing icon Image; alpha=.78, offset 1.6px, an 8% scale lift, and clearer warm icon tint on hover. Enabled only while pointer is over an icon. No extra animations, tooltips, polling or material allocations per frame.

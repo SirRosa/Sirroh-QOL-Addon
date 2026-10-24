@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.22 (test release)
+# Sirroh QOL Addon — 0.1.23 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 
@@ -182,3 +182,11 @@ For troubleshooting, the BepInEx log records the actual native and addon _Bright
 **Recycle dimensions now match the three lower side rail actions:** 52×52 clickable rectangle, 9px inset on all sides resulting in a 34×34 visible icon. Its 9-sliced wood tab shares the same computed `boardHeight` as Sort, Quickstack and Restock, but remains above the native Weight panel. All 64×64 source assets are preserved.
 
 **Hover:** the previous tiny one-sided `Shadow` (1px offset, .22 opacity) was too faint under Valheim's nighttime lighting. Icons now use a pre-cached four-sided Unity UI `Outline` at 1.6px/78% alpha, a warmer golden image tint and an 8% icon-only scale lift while hovered. Every control remains the same size for hit-testing, with transparent backgrounds and no hover text; click/drag/favorite interactions are unchanged. `Outline.enabled` toggles only on enter/exit, keeping CPU and GC overhead negligible. Native `Custom/LitGui` day/night shading is untouched.
+
+## v0.1.23 — highly visible Favorite edit-mode star
+
+The Armor-shield Favorite indicator now changes **the actual rendered image**, not only the tint of a dark texture. A separate 64×64 sprite is generated in the build pipeline: every nontransparent pixel of the original supplied Favorite star is replaced with solid gold `RGB(255,208,52)`; every alpha pixel and original shape is preserved exactly. The original brown icon remains embedded unchanged.
+
+**Inactive:** original muted bronze, with the same Valheim `Custom/LitGui` night-darkness shader. **Hover while inactive:** mild highlight but still the original brown art. **Active (Favorite editing):** entire star is gold even with no hover; persistent bright gold outline, subtle 12% enlargement, and UI/Default **unlit** rendering for an emission-like indicator visible at night. **Click again:** return to brown, native LitGui lighting and no persistent halo. When hovering an active star, an additional small scale lift highlights the cursor.
+
+This is an emission-like **unlit UI** effect, not a new HDR emission/bloom shader or second environmental lighting system. All existing favorite item logic, Alt controls, UI positioning, Q/R/Reclaim, Azu integration, resource caching and performance behavior are unchanged.
