@@ -356,7 +356,7 @@ assert '_graphic.sprite = QolFavorites.FavoriteGoldIcon' in ui
 assert '_graphic.sprite = QolFavorites.FavoriteIcon' in ui
 assert '_graphic.material = null;' in ui
 assert 'QolNativeUiLighting.Apply(_graphic);' in ui
-assert '_outline.enabled = _hovered || activeFavorite;' in ui
+assert '_outline.enabled = !_isFavorite && _hovered;' in ui
 assert 'new Color(1f, .84f, .37f, .95f)' in ui
 assert 'new Vector2(30f, 30f)' in ui
 assert '_normalScale * 1.06f' in ui
