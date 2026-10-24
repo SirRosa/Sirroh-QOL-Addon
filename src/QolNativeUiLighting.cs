@@ -165,6 +165,12 @@ namespace Sirroh.Qol
         private static void Apply(Image image, bool wood)
         {
             if (image == null) return;
+            if (image.sprite == QolFavorites.FavoriteHaloIcon)
+            {
+                // Do not dim the circular glow or set shared lit material.
+                image.material = null;
+                return;
+            }
             // Explicitly preserve unlit/emission-like Favorite editing state
             // if the inventory rebuild triggers another LitGui Sync.
             if (!wood && QolFavorites.FavoriteMode &&

@@ -19,12 +19,13 @@ namespace Sirroh.Qol
         private static Sprite _trashMask;
         private static Sprite _reclaimBorder;
         private static Sprite _recyclePanel;
-        private static readonly Texture2D[] _textures = new Texture2D[12];
-        private static Sprite _sortIcon, _favoriteIcon, _favoriteGoldIcon, _quickIcon, _restockIcon, _recycleIcon;
+        private static readonly Texture2D[] _textures = new Texture2D[13];
+        private static Sprite _sortIcon, _favoriteIcon, _favoriteGoldIcon, _favoriteHaloIcon, _quickIcon, _restockIcon, _recycleIcon;
         private static bool _favoriteMode;
         internal static Sprite SortIcon => _sortIcon;
         internal static Sprite FavoriteIcon => _favoriteIcon;
         internal static Sprite FavoriteGoldIcon => _favoriteGoldIcon;
+        internal static Sprite FavoriteHaloIcon => _favoriteHaloIcon;
         internal static Sprite QuickIcon => _quickIcon;
         internal static Sprite RestockIcon => _restockIcon;
         internal static Sprite RecycleIcon => _recycleIcon;
@@ -54,6 +55,7 @@ namespace Sirroh.Qol
             _sortIcon = ReadSprite("ui_sort");
             _favoriteIcon = ReadSprite("ui_favorite");
             _favoriteGoldIcon = ReadSprite("ui_favorite_gold");
+            _favoriteHaloIcon = ReadSprite("ui_favorite_halo");
             _quickIcon = ReadSprite("ui_quickstack");
             _restockIcon = ReadSprite("ui_restock");
             _recycleIcon = ReadSprite("ui_recycle");
@@ -278,6 +280,7 @@ namespace Sirroh.Qol
                         case "ui_recycle": _textures[9] = texture; break;
                         case "ui_wood": _textures[10] = texture; break;
                         case "ui_favorite_gold": _textures[11] = texture; break;
+                        case "ui_favorite_halo": _textures[12] = texture; break;
                     }
                     // 9-sliced backplate keeps the user's carved wood corners
                     // sharp even when the underlying plank is stretched.
@@ -301,7 +304,7 @@ namespace Sirroh.Qol
             foreach (Texture2D texture in _textures)
                 if (texture != null) UnityEngine.Object.Destroy(texture);
             _border = _trash = _trashMask = _reclaimBorder = _recyclePanel = null;
-            _sortIcon = _favoriteIcon = _favoriteGoldIcon = _quickIcon = _restockIcon = _recycleIcon = _woodPanel = null;
+            _sortIcon = _favoriteIcon = _favoriteGoldIcon = _favoriteHaloIcon = _quickIcon = _restockIcon = _recycleIcon = _woodPanel = null;
         }
     }
 }

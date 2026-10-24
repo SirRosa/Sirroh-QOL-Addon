@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.23 (test release)
+# Sirroh QOL Addon — 0.1.24 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 
@@ -190,3 +190,7 @@ The Armor-shield Favorite indicator now changes **the actual rendered image**, n
 **Inactive:** original muted bronze, with the same Valheim `Custom/LitGui` night-darkness shader. **Hover while inactive:** mild highlight but still the original brown art. **Active (Favorite editing):** entire star is gold even with no hover; persistent bright gold outline, subtle 12% enlargement, and UI/Default **unlit** rendering for an emission-like indicator visible at night. **Click again:** return to brown, native LitGui lighting and no persistent halo. When hovering an active star, an additional small scale lift highlights the cursor.
 
 This is an emission-like **unlit UI** effect, not a new HDR emission/bloom shader or second environmental lighting system. All existing favorite item logic, Alt controls, UI positioning, Q/R/Reclaim, Azu integration, resource caching and performance behavior are unchanged.
+
+## v0.1.24 — one Favorite star, no displaced duplicate outlines
+
+The previous Unity `Outline` multiplied the 19px Favorite star silhouette into four offset vertex copies. This looked like several misaligned gold stars. Favorite now has **no UI Outline component**. The unlit solid gold sprite remains intact and a separate 30px circular radial alpha-gradient behind the single gold star produces a soft glow in active editing mode. On hover without editing there is only a weak halo; the icon remains original bronze with native `Custom/LitGui` dimming. Active gold remains visible at night. The halo uses one 64px alpha-blended texture (not the star silhouette), is not clickable, cached, and uses zero per-frame computations. The normal Sort/Quickstack/Restock/Recycle hover outlines are unchanged. Favorite persists/synchronizes exactly as before, including AzuAutoStore support.

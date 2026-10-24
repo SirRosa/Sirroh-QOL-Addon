@@ -116,3 +116,25 @@ for name, x, y in (
         (out / "ui_favorite_gold.rgba").write_bytes(gold_raw)
         print("Full-gold Favorite editing sprite: 64x64, exact source alpha")
 
+        # Radial diffuse glow: a single circular gradient BEHIND the star.
+        # Unlike UI Outline it never duplicates/dilates star-shaped vertices.
+        # A 64px intermediate is rescaled by Unity as a ~30px halo.
+        from math import exp
+        halo = Image.new("RGBA", (64,64), (255,195,35,0))
+        hp = halo.load()
+        for yy in range(64):
+            for xx in range(64):
+                rr = ((xx - 31.5)**2 + (yy - 31.5)**2) / (21.0**2)
+                aa = round(105 * exp(-2.0 * rr))
+                if rr >= 2.25:
+                    aa = 0
+                hp[xx,yy] = (255,195,35,aa)
+        assert halo.getpixel((0,0))[3] == 0
+        assert halo.getpixel((32,32))[3] > 95
+        # Raw RGBA is top-down: flip before Unity LoadRawTextureData.
+        halo = halo.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+        halo_raw = struct.pack("<II",64,64) + halo.tobytes()
+        assert len(halo_raw) == 8 + 64 * 64 * 4
+        (out / "ui_favorite_halo.rgba").write_bytes(halo_raw)
+        print("Favorite circular glow: 64x64 (NO silhouette copies)")
+

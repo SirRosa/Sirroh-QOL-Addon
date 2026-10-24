@@ -509,15 +509,16 @@ namespace Sirroh.Qol
     }
 
     /// <summary>
-    /// High-contrast hover feedback using a single cached Unity UI Outline:
-    /// four-sided halo on the icon silhouette, brighter warm tint and a
-    /// slight 8% scale lift. Only changes on pointer transitions; no update
-    /// loop, no new textures, and no floating tooltip text.
+    /// The tiny Favorite star never uses Outline: Unity UI's four shifted
+    /// silhouette copies looked like several misaligned stars. Instead,
+    /// a radial golden halo behind ONE star indicates edit mode. Larger
+    /// QOL icons retain their usual hover outline; no Update loop.
     /// </summary>
     internal sealed class QolIconHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         private Image _graphic;
         private Outline _outline;
+        private Image _favoriteHalo;
         private Vector3 _normalScale;
         private bool _isFavorite;
         private bool _hovered;
@@ -529,15 +530,45 @@ namespace Sirroh.Qol
             if (_graphic == null) return;
             _normalScale = _graphic.rectTransform.localScale;
 
-            // Outline expands in four directions; the previous 1px Shadow
-            // drew only below the icon with alpha .22 and was nearly invisible.
-            _outline = _graphic.GetComponent<Outline>();
-            if (_outline == null)
-                _outline = _graphic.gameObject.AddComponent<Outline>();
-            _outline.effectColor = new Color(1f, .80f, .43f, .78f);
-            _outline.effectDistance = new Vector2(1.6f, 1.6f);
-            _outline.useGraphicAlpha = true;
-            _outline.enabled = false;
+            if (_isFavorite)
+            {
+                // Unity UI Outline duplicates the source vertices four times.
+                // On the 19px shield star it appears as four shifted stars.
+                // NEVER attach Outline (or Shadow) to this Image.
+                Outline stale = _graphic.GetComponent<Outline>();
+                if (stale != null) stale.enabled = false;
+                if (QolFavorites.FavoriteHaloIcon != null)
+                {
+                    var haloObject = new GameObject("SirrohFavoriteHalo",
+                        typeof(RectTransform), typeof(Image));
+                    // A separate circular gradient, not a copy of the star.
+                    // Parent to the button BEHIND its Icon child.
+                    haloObject.transform.SetParent(transform, false);
+                    haloObject.transform.SetAsFirstSibling();
+                    var rect = haloObject.GetComponent<RectTransform>();
+                    rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
+                    rect.pivot = new Vector2(.5f, .5f);
+                    rect.anchoredPosition = Vector2.zero;
+                    rect.sizeDelta = new Vector2(30f, 30f);
+                    _favoriteHalo = haloObject.GetComponent<Image>();
+                    _favoriteHalo.sprite = QolFavorites.FavoriteHaloIcon;
+                    _favoriteHalo.raycastTarget = false;
+                    _favoriteHalo.preserveAspect = true;
+                    _favoriteHalo.material = null; // unlit emission-like aura
+                    _favoriteHalo.enabled = false;
+                }
+            }
+            else
+            {
+                // Keep the already working hover outline on larger QOL icons.
+                _outline = _graphic.GetComponent<Outline>();
+                if (_outline == null)
+                    _outline = _graphic.gameObject.AddComponent<Outline>();
+                _outline.effectColor = new Color(1f, .80f, .43f, .78f);
+                _outline.effectDistance = new Vector2(1.6f, 1.6f);
+                _outline.useGraphicAlpha = true;
+                _outline.enabled = false;
+            }
             Refresh();
         }
 
@@ -575,19 +606,20 @@ namespace Sirroh.Qol
                     : new Color(.89f, .89f, .89f, 1f);
             }
             if (_outline != null)
+                _outline.enabled = !_isFavorite && _hovered;
+
+            if (_favoriteHalo != null)
             {
-                // The persistent halo identifies edit mode without hovering.
-                _outline.enabled = _hovered || activeFavorite;
-                _outline.effectColor = activeFavorite
-                    ? new Color(1f, .78f, .18f, .95f)
-                    : new Color(1f, .80f, .43f, .70f);
-                _outline.effectDistance = activeFavorite
-                    ? new Vector2(2.5f, 2.5f)
-                    : new Vector2(1.6f, 1.6f);
+                // Gradient stays aligned: ONE star, circular light behind it.
+                _favoriteHalo.enabled = activeFavorite || _hovered;
+                _favoriteHalo.color = activeFavorite
+                    ? new Color(1f, .84f, .37f, .95f)
+                    : new Color(1f, .77f, .35f, .38f);
             }
+            // Avoid excessive scaling of the already very small shield glyph.
             _graphic.rectTransform.localScale = activeFavorite
-                ? _normalScale * (_hovered ? 1.18f : 1.12f)
-                : (_hovered ? _normalScale * 1.08f : _normalScale);
+                ? _normalScale * 1.06f
+                : (_hovered ? _normalScale * 1.04f : _normalScale);
         }
 
         public void OnPointerEnter(PointerEventData eventData)

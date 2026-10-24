@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 17, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.23"' in source["Plugin"]
+assert 'Version = "0.1.24"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -159,7 +159,7 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.23"
+assert manifest["version_number"] == "0.1.24"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
 
@@ -201,7 +201,11 @@ assert 'private bool _hovered;' in ui
 assert 'bool activeFavorite = _isFavorite && QolFavorites.FavoriteMode;' in ui
 assert '_favoriteHover.Refresh();' in ui
 assert '_graphic.gameObject.AddComponent<Outline>()' in ui
-assert '_outline.enabled = _hovered || activeFavorite;' in ui
+assert 'if (_isFavorite)' in ui
+assert 'if (stale != null) stale.enabled = false;' in ui
+assert 'haloObject.transform.SetAsFirstSibling();' in ui
+assert '_outline.enabled = !_isFavorite && _hovered;' in ui
+assert '_favoriteHalo.enabled = activeFavorite || _hovered;' in ui
 assert 'new Color(1f, .80f, .43f, .78f)' in ui
 assert 'new Vector2(1.6f, 1.6f)' in ui
 assert '_normalScale * 1.08f' in ui
@@ -345,7 +349,7 @@ assert 'gold.getchannel("A").tobytes() == icon.getchannel("A").tobytes()' in art
 assert 'ui_favorite_gold.rgba' in art
 assert 'FavoriteGoldIcon => _favoriteGoldIcon;' in fav
 assert '_favoriteGoldIcon = ReadSprite("ui_favorite_gold")' in fav
-assert 'new Texture2D[12]' in fav
+assert 'new Texture2D[13]' in fav
 assert 'case "ui_favorite_gold": _textures[11] = texture;' in fav
 assert 'QolFavorites.FavoriteGoldIcon != null' in ui
 assert '_graphic.sprite = QolFavorites.FavoriteGoldIcon' in ui
@@ -353,10 +357,29 @@ assert '_graphic.sprite = QolFavorites.FavoriteIcon' in ui
 assert '_graphic.material = null;' in ui
 assert 'QolNativeUiLighting.Apply(_graphic);' in ui
 assert '_outline.enabled = _hovered || activeFavorite;' in ui
-assert 'new Color(1f, .78f, .18f, .95f)' in ui
-assert 'new Vector2(2.5f, 2.5f)' in ui
-assert '_normalScale * (_hovered ? 1.18f : 1.12f)' in ui
+assert 'new Color(1f, .84f, .37f, .95f)' in ui
+assert 'new Vector2(30f, 30f)' in ui
+assert '_normalScale * 1.06f' in ui
 assert 'if (!wood && QolFavorites.FavoriteMode &&' in lighting
 assert 'image.sprite == QolFavorites.FavoriteGoldIcon' in lighting
 assert 'image.material = null;' in lighting
 assert 'SetGlobal' not in lighting
+
+# Regression: Favorite must use one intact star and one diffuse radial
+# background. UI Outline duplicates its mesh four times and is forbidden
+# for the tiny shield star even while Favorite is active.
+assert 'FavoriteHaloIcon => _favoriteHaloIcon;' in fav
+assert '_favoriteHaloIcon = ReadSprite("ui_favorite_halo");' in fav
+assert 'ui_favorite_halo.rgba' in art
+assert 'halo = Image.new("RGBA", (64,64)' in art
+assert 'exp(-2.0 * rr)' in art
+assert 'halo.getpixel((0,0))[3] == 0' in art
+assert 'haloObject.transform.SetAsFirstSibling();' in ui
+assert '_favoriteHalo.raycastTarget = false;' in ui
+assert '_favoriteHalo.material = null;' in ui
+assert '_favoriteHalo.enabled = activeFavorite || _hovered;' in ui
+assert '_outline.enabled = !_isFavorite && _hovered;' in ui
+assert 'if (image.sprite == QolFavorites.FavoriteHaloIcon)' in lighting
+assert 'image.material = null;' in lighting
+assert 'new Vector2(19f,19f)' in ui
+assert 'new Vector2(30f, 30f)' in ui

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.24
+- Fix overlapping/misaligned Favorite stars caused by Unity UI Outline creating four offset copies of the 19px star mesh (particularly the 2.5px active-state outline). Never add Outline to Favorite; disable any stale one.
+- Draw exactly ONE existing source-alpha gold star and a separate, smooth, circular gold gradient behind it. The gradient is a cached 64x64 raw resource displayed at 30x30, with zero alpha at its edges; unlike Outline it does not duplicate the star silhouette. No per-frame processing or raycasts.
+- Keep the distinct states: bronze original with native LitGui when idle; brighter bronze with subtle radial glow on hover; a fully gold unlit star with a persistent warm radial glow when Favorite editing is on.
+- Reduce active star scaling to 6% (instead of 12-18%). All other QOL icon hover outlines and inventory UI layout remain unchanged.
+- Embed one additional UI glow resource (13 total) and verify it in CI.
+
 ## 0.1.23
 - Fully golden Favorite in edit mode: create an additional 64x64 solid RGB(255,208,52) sprite from the exact alpha of the existing Favorite artwork (no new image generated and no change to the original bronze sprite).
 - Editing ON uses the full gold sprite on Unity UI/Default (unlit, emission-like), with a persistent gold halo; normal hover does not switch to the full-gold sprite. Editing OFF returns to the bronze image with native LitGui shader/dimming and no persistent halo. Increase shield star from 17px to 19px for legibility.

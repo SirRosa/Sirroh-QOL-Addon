@@ -95,7 +95,7 @@ if (args.Length == 2 && args[0] == "--diagnose-inventory-recipe-null")
 if (args.Length == 2 && args[0] == "--verify-qol-assets")
 {
     using var a = AssemblyDefinition.ReadAssembly(args[1]);
-    foreach (string name in new [] {"border","trash","trashmask","trashingborder","RecyclingPanel","ui_sort","ui_favorite","ui_quickstack","ui_restock","ui_recycle","ui_wood","ui_favorite_gold"})
+    foreach (string name in new [] {"border","trash","trashmask","trashingborder","RecyclingPanel","ui_sort","ui_favorite","ui_quickstack","ui_restock","ui_recycle","ui_wood","ui_favorite_gold","ui_favorite_halo"})
     {
         string logical = "Sirroh.Qol.Assets." + name + ".rgba";
         var asset = a.MainModule.Resources.FirstOrDefault(r=>r.Name == logical) as EmbeddedResource;
@@ -108,7 +108,7 @@ if (args.Length == 2 && args[0] == "--verify-qol-assets")
              throw new InvalidOperationException("Invalid embedded PNG conversion: "+logical);
         Console.WriteLine(logical + " " + width + "x" + height + " confirmed in DLL.");
     }
-    Console.WriteLine("PASS: all 12 QOL resources embedded, including gold Favorite edit sprite.");
+    Console.WriteLine("PASS: all 13 QOL resources embedded, including gold Favorite and radial halo.");
     return;
 }
 
