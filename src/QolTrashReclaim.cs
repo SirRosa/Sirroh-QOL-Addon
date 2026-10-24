@@ -273,7 +273,13 @@ namespace Sirroh.Qol
             {
                 int max = entry.Data.m_shared.m_maxStackSize;
                 if (max < 1) return ReclaimResult.Unsupported;
-                totalDrops += (int)(((long)entry.Count + max - 1) / max);
+                long need = ((long)entry.Count + max - 1) / max;
+                if (need > MaxDrops - totalDrops)
+                {
+                    Message("Reclaim: ponad 64 stosy materiałów. Zwolnij miejsce w ekwipunku.");
+                    return ReclaimResult.Full;
+                }
+                totalDrops += (int)need;
                 if (totalDrops > MaxDrops)
                 {
                     Message("Reclaim: ponad 64 stosy materiałów. Zwolnij miejsce w ekwipunku.");

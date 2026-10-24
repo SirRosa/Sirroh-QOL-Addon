@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.26
+- Fixed empty-inventory Reclaim failures caused by confusing character weight with inventory capacity; Valheim allows overweight inventory.
+- When the true slot limit is exceeded, safely stage and drop up to 64 returned material stacks beside the player, then remove the source. Rollback staged objects on failure. No spawning on normal reclaim.
+- Synchronize Azu RMB/left-click favorite operations to Sirroh favorites and continue syncing Sirroh edits into Azu; prevent duplicate toggles when edit modes overlap.
+- Redirect Azu middle-click (single-item shortcut) and manual-store shortcuts into Sirroh QuickStack with Sirroh selected; retain Azu native behavior when Azu backend is selected.
+- Play Azu native destination chest PingContainer VFX + highlight for each changed chest, or equivalent vanilla ping without Azu. Display translated single-item or total-count transfer messages.
+
+
 ## 0.1.25
 - Lazy prefab-first recipe cache plus fallback to the Valheim recipe registry and shared item names. Cached across reclaim operations and invalidated when ObjectDB/recipe list changes.
 - Handle dynamically registered mod recipes and upgrade-only material requirements. Aggregate duplicate yield prefabs before adding materials.

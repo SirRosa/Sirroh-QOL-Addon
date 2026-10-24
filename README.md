@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.25 (test release)
+# Sirroh QOL Addon — 0.1.26 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 
@@ -213,3 +213,20 @@ The previous Unity `Outline` multiplied the 19px Favorite star silhouette into f
 - A mod replacing a recipe in-place without changing ObjectDB lifecycle,
   count, first or last references may require a world reload to rebuild cache.
 - Recycle_N_Reclaim compatibility has not yet been implemented.
+
+## Azu compatibility and Reclaim fixes (v0.1.26)
+
+- Favorites: both Azu and Sirroh name/slot edits synchronize between
+  providers. Combined edit modes cannot process the same click twice.
+- When `QuickStackEngine = Sirroh`, Azu's middle-click single-item
+  shortcut and manual store hotkey trigger **Sirroh's full QuickStack**.
+  When Azu is selected, native shortcuts are retained. Background auto
+  storage, backpacks and item-drawers are unchanged.
+- Each modified destination chest gets the actual Azu PingContainer highlight
+  and VFX (respects its configuration). Without Azu, use Valheim's identical
+  default vfx_Potion_health_medium prefab. Messages show either the item's
+  localized name and quantity or the total number transferred.
+- Reclaim no longer confuses excess return weight with a lack of slots.
+  Actual slot overflow stages up to 64 item stacks on the ground before
+  removing the source; aborts safely when staging fails.
+- Runtime tests with Sirro Overhaul custom gear and Azu are still required.

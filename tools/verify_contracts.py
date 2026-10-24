@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 19, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.25"' in source["Plugin"]
+assert 'Version = "0.1.26"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -160,7 +160,7 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.25"
+assert manifest["version_number"] == "0.1.26"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
 
@@ -406,3 +406,27 @@ assert "MemoryStream(Encoding.UTF8.GetBytes(json))" in extension
 assert "return false; // Abort without modifying the inventory." in extension
 assert "QolReclaimExtensions.Shutdown();" in reclaim
 assert "QolRecipeCache.Shutdown();" in reclaim
+
+# Cross-mod favorites, MMB routing and per-destination VFX regressions.
+azu = source["QolAzuAutoStoreCompatibility"]
+favorites = source["QolFavorites"]
+inv = source["QolNearbyInventory"]
+reclaim = source["QolTrashReclaim"]
+assert '"TryStoreThisItem"' in azu and 'nameof(BeforeAzuSingleStore)' in azu
+assert 'QolNearbyInventory.StartArea(true);' in azu
+assert 'nameof(AfterAzuNameToggle)' in azu
+assert 'nameof(AfterAzuSlotToggle)' in azu
+assert 'nameof(BeforeAzuFavoriteClick)' in azu
+assert 'QolFavorites.SyncFromAzuName' in azu
+assert 'QolFavorites.SyncFromAzuSlot' in azu
+assert 'ShouldHandleSirrohFavorite' in favorites
+assert 'if (_mirroringToAzu' in azu
+assert 'PingChest(GameObject container)' in azu
+assert 'PingQuickStackChest(chest)' in inv
+assert 'ZNetScene.instance.GetPrefab("vfx_Potion_health_medium")' in inv
+assert 'm_moveItemEffects.Create' in inv
+assert 'Przeniesiono ' in inv and 'do pobliskich skrzyń' in inv
+assert 'int _lastStartFrame' in inv
+assert 'DropOverflowYields' in reclaim
+assert 'if (overflow) return DropOverflowYields' in reclaim
+assert 'GetMaxCarryWeight()' not in reclaim
