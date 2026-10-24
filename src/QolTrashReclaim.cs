@@ -10,6 +10,8 @@ namespace Sirroh.Qol
     internal static class QolTrashReclaim
     {
         private static Plugin _host;
+        private static readonly Action<ItemDrop> SaveDroppedItem =
+            AccessTools.MethodDelegate<Action<ItemDrop>>(AccessTools.Method(typeof(ItemDrop), "Save"));
         private static RectTransform _buttonRect;
         private static GameObject _buttonObject;
         private static GameObject _confirm;
@@ -310,7 +312,7 @@ namespace Sirroh.Qol
                         drop.m_itemData.m_stack = chunk;
                         drop.m_itemData.m_quality = entry.Data.m_quality;
                         drop.m_itemData.m_variant = entry.Data.m_variant;
-                        drop.Save();
+                        SaveDroppedItem(drop);
                         remaining -= chunk;
                         index++;
                     }

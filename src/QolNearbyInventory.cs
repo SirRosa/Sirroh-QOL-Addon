@@ -34,6 +34,10 @@ namespace Sirroh.Qol
         private static bool _busy;
         private static int _lastStartFrame = -1;
         private static GameObject _pingPrefab;
+        private static readonly Type LocalizationType = AccessTools.TypeByName("Localization");
+        private static readonly FieldInfo LocalizationSingleton = LocalizationType == null ? null :
+            AccessTools.Field(LocalizationType, "instance");
+        private static readonly MethodInfo LocalizationMethod = FindLocalizationMethod();
         private static float _nextKey;
 
         internal static void Install(Plugin host)
@@ -358,8 +362,7 @@ namespace Sirroh.Qol
                 {
                     string text = !multipleTypes && firstItem != null
                         ? "Przeniesiono " +
-                          (Localization.instance != null
-                              ? Localization.instance.Localize(firstItem) : firstItem) +
+                          LocalizeItem(firstItem) +
                           " (x" + moved + ") do pobliskiej skrzyni."
                         : "Przeniesiono " + moved + " przedmiotów do pobliskich skrzyń.";
                     player.Message(MessageHud.MessageType.TopLeft, text);
@@ -426,6 +429,31 @@ namespace Sirroh.Qol
             // interpolation can change while a remote batch is underway.
             if (chest.GetComponentInParent<Ship>() != null) return false;
             return true;
+        }
+
+        private static MethodInfo FindLocalizationMethod()
+        {
+            if (LocalizationType == null) return null;
+            foreach (MethodInfo method in LocalizationType.GetMethods(
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+            {
+                if (method.Name != "Localize") continue;
+                ParameterInfo[] args = method.GetParameters();
+                if (args.Length == 1 && args[0].ParameterType == typeof(string)) return method;
+            }
+            return null;
+        }
+
+        private static string LocalizeItem(string name)
+        {
+            if (LocalizationMethod == null || LocalizationSingleton == null) return name;
+            try
+            {
+                object locale = LocalizationSingleton.GetValue(null);
+                return locale == null ? name :
+                    LocalizationMethod.Invoke(locale, new object[] { name }) as string ?? name;
+            }
+            catch { return name; }
         }
 
         private static void PingQuickStackChest(Container chest)
