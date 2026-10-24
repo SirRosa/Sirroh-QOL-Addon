@@ -204,9 +204,13 @@ namespace Sirroh.Qol
                     return ReclaimResult.Error;
                 if (Yields.Count == 0) return ReclaimResult.Unsupported;
 
-                // Full capacity simulation across all materials, not
-                // separate CanAddItem checks that may over-book empty slots.
+                // Count actual slots, independent from carry weight. Valheim
+                // permits overweight inventory; treating weight as "no slots"
+                // incorrectly rejected expensive modded Overhaul gear.
+                // If yields truly exceed inventory slots, issue physical
+                // ingredient stacks only on this rare reclaim overflow.
                 int slots = inventory.GetEmptySlots();
+                bool overflow = false;
                 foreach (var entry in Yields)
                 {
                     if (entry.Data.m_shared.m_maxStackSize <= 0) return ReclaimResult.Unsupported;
@@ -215,18 +219,15 @@ namespace Sirroh.Qol
                         inventory.FindFreeStackSpace(entry.Name, entry.Data.m_worldLevel) - reserved);
                     int filled = Math.Min(entry.Count, freeInStacks);
                     int remainder = entry.Count - filled;
-                    slots -= (remainder + entry.Data.m_shared.m_maxStackSize - 1) /
-                        entry.Data.m_shared.m_maxStackSize;
-                    if (slots < 0) return ReclaimResult.Full;
+                    slots -= (int)(((long)remainder + entry.Data.m_shared.m_maxStackSize - 1) /
+                        entry.Data.m_shared.m_maxStackSize);
+                    if (slots < 0) { overflow = true; break; }
                     FreeReserved[entry.Name] = reserved + filled;
                 }
-                // Independent safety check for weight. Material yield may be
-                // heavy despite enough slots.
-                float deltaWeight = 0f;
-                foreach (var entry in Yields) deltaWeight += entry.Data.GetWeight(-1) * entry.Count;
-                float after = inventory.GetTotalWeight() + deltaWeight -
-                    (origin == inventory ? item.GetWeight(-1) * count : 0f);
-                if (after > player.GetMaxCarryWeight()) return ReclaimResult.Full;
+                // Preserve all materials when the returned recipe cannot fit
+                // (e.g. modded high-cost gear). No scene-spawn work on the
+                // normal inventory-fit path.
+                if (overflow) return DropOverflowYields(item, origin, count, player);
 
                 // Place resources first; source is removed only once all
                 // resources were actually inserted. Roll back counts on
@@ -257,6 +258,79 @@ namespace Sirroh.Qol
                 if (received.Count > 0) UndoReceived(inventory, received);
                 _host?.Log.LogWarning("TrashReclaim: transaction error: " + e);
                 return ReclaimResult.Error;
+            }
+        }
+
+        private static ReclaimResult DropOverflowYields(ItemDrop.ItemData source, Inventory origin,
+            int count, Player player)
+        {
+            // Bounded emergency fallback, never part of the normal fast path.
+            // Stage all drops, verify the source removal, then finish.
+            // If the source cannot be removed, destroy staged drops.
+            const int MaxDrops = 64;
+            int totalDrops = 0;
+            foreach (Yield entry in Yields)
+            {
+                int max = entry.Data.m_shared.m_maxStackSize;
+                if (max < 1) return ReclaimResult.Unsupported;
+                totalDrops += (int)(((long)entry.Count + max - 1) / max);
+                if (totalDrops > MaxDrops)
+                {
+                    Message("Reclaim: ponad 64 stosy materiałów. Zwolnij miejsce w ekwipunku.");
+                    return ReclaimResult.Full;
+                }
+            }
+
+            List<GameObject> spawned = new List<GameObject>(totalDrops);
+            bool committed = false;
+            try
+            {
+                int index = 0;
+                foreach (Yield entry in Yields)
+                {
+                    int remaining = entry.Count;
+                    int max = entry.Data.m_shared.m_maxStackSize;
+                    while (remaining > 0)
+                    {
+                        int chunk = Math.Min(max, remaining);
+                        Vector3 offset = new Vector3((index % 5 - 2) * .45f, .8f,
+                            ((index / 5) % 5 - 2) * .45f);
+                        GameObject dropObject = UnityEngine.Object.Instantiate(entry.Prefab,
+                            player.transform.position + offset, Quaternion.identity);
+                        if (dropObject == null) return ReclaimResult.Error;
+                        spawned.Add(dropObject);
+                        ItemDrop drop = dropObject.GetComponent<ItemDrop>();
+                        if (drop == null || drop.m_itemData == null) return ReclaimResult.Error;
+                        drop.m_itemData.m_stack = chunk;
+                        drop.m_itemData.m_quality = entry.Data.m_quality;
+                        drop.m_itemData.m_variant = entry.Data.m_variant;
+                        drop.Save();
+                        remaining -= chunk;
+                        index++;
+                    }
+                }
+                bool removed = count == source.m_stack
+                    ? origin.RemoveItem(source) : origin.RemoveItem(source, count);
+                if (!removed) return ReclaimResult.Error;
+                committed = true;
+                Message("Odzyskano materiały na ziemię (" + totalDrops +
+                    " stosów; brak wystarczającej liczby slotów).");
+                return ReclaimResult.Reclaimed;
+            }
+            catch (Exception ex)
+            {
+                _host?.Log.LogWarning("Reclaim overflow staging failed: " + ex);
+                return ReclaimResult.Error;
+            }
+            finally
+            {
+                if (!committed)
+                    for (int i = 0; i < spawned.Count; i++)
+                        if (spawned[i] != null)
+                        {
+                            if (ZNetScene.instance != null) ZNetScene.instance.Destroy(spawned[i]);
+                            else UnityEngine.Object.Destroy(spawned[i]);
+                        }
             }
         }
 
