@@ -28,8 +28,8 @@ namespace Sirroh.Qol
         [DataContract]
         private sealed class Amount
         {
-            [DataMember(Name = "Item")] public string Item;
-            [DataMember(Name = "Amount")] public int Count;
+            [DataMember(Name = "Item")] public string Item = "";
+            [DataMember(Name = "Amount")] public int Count = 0;
         }
 
         private static void BindEpic()

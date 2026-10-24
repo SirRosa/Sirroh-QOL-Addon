@@ -366,7 +366,7 @@ namespace Sirroh.Qol
             ClearDialog();
             if (_buttonObject != null) UnityEngine.Object.Destroy(_buttonObject);
             _buttonObject = null; _buttonRect = null;
-            Yields.Clear(); FreeReserved.Clear(); FinalAmount.Clear();
+            Yields.Clear(); FreeReserved.Clear(); YieldIndices.Clear();
             _host = null;
         }
     }
