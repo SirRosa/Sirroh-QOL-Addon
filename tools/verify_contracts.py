@@ -198,7 +198,7 @@ assert 'hover.Initialize(display, false);' in ui
 assert 'hover.Initialize(image, sprite == QolFavorites.FavoriteIcon);' in ui
 assert 'hover.Initialize(image, false);' in trash
 assert 'private bool _hovered;' in ui
-assert 'bool gold = _hovered || QolFavorites.FavoriteMode;' in ui
+assert 'bool activeFavorite = _isFavorite && QolFavorites.FavoriteMode;' in ui
 assert '_favoriteHover.Refresh();' in ui
 assert '_graphic.gameObject.AddComponent<Outline>()' in ui
 assert '_outline.enabled = _hovered || activeFavorite;' in ui
