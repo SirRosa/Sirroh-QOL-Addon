@@ -63,12 +63,36 @@ namespace Sirroh.Qol
         }
 
         private static bool Modifier => _favoriteMode || Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
+        internal static bool ShouldHandleSirrohFavorite(InventoryGrid grid) =>
+            grid != null && InventoryGui.instance != null &&
+            grid == InventoryGui.instance.m_playerGrid &&
+            Player.m_localPlayer != null && Modifier &&
+            QolGameAccess.DragItem(InventoryGui.instance) == null;
+
+        internal static void SyncFromAzuName(string name, bool selected)
+        {
+            if (string.IsNullOrEmpty(name) || Player.m_localPlayer == null) return;
+            Ensure();
+            bool changed = selected ? Names.Add(name) : Names.Remove(name);
+            if (changed) Save();
+        }
+
+        internal static void SyncFromAzuSlot(Vector2i position, bool selected)
+        {
+            Player player = Player.m_localPlayer;
+            if (player == null) return;
+            Inventory inv = player.GetInventory();
+            if (inv == null || position.x < 0 || position.x >= inv.GetWidth() ||
+                position.y < 0 || position.y >= inv.GetHeight()) return;
+            Ensure();
+            int index = position.y * inv.GetWidth() + position.x;
+            bool changed = selected ? Slots.Add(index) : Slots.Remove(index);
+            if (changed) Save();
+        }
+
         private static bool Valid(InventoryGrid grid)
         {
-            return grid != null && InventoryGui.instance != null &&
-                grid == InventoryGui.instance.m_playerGrid &&
-                Player.m_localPlayer != null && Modifier &&
-                QolGameAccess.DragItem(InventoryGui.instance) == null;
+            return ShouldHandleSirrohFavorite(grid);
         }
 
         private static bool Left(InventoryGrid __instance, object clickHandler)

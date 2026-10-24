@@ -18,6 +18,9 @@ namespace Sirroh.Qol
         private static bool _bound;
         private static float _nextDetection;
         private static Action _azuManualStore;
+        private static Action<GameObject> _azuPingChest;
+        private static bool _mirroringToAzu;
+        private static FieldInfo _azuSharedName;
         private static Func<long, object> _getPlayerConfig;
         private static Func<object, ItemDrop.ItemData, bool> _azuFavorite;
         private static Func<object, Vector2i, bool> _azuSlotFavorite;
@@ -66,6 +69,17 @@ namespace Sirroh.Qol
                     _host.Patch("AzuAutoStore.ManualStore", store,
                         prefix: AccessTools.Method(typeof(QolAzuAutoStoreCompatibility),
                             nameof(BeforeAzuManualStore)), priority: Priority.First);
+                    MethodInfo single = AccessTools.Method(functions, "TryStoreThisItem",
+                        new[] { typeof(ItemDrop.ItemData), typeof(Inventory) });
+                    if (single != null)
+                        _host.Patch("AzuAutoStore.SingleItemShortcut", single,
+                            prefix: AccessTools.Method(typeof(QolAzuAutoStoreCompatibility),
+                                nameof(BeforeAzuSingleStore)), priority: Priority.First);
+                    MethodInfo ping = AccessTools.Method(functions, "PingContainer",
+                        new[] { typeof(GameObject) });
+                    if (ping != null)
+                        _azuPingChest = (Action<GameObject>)Delegate.CreateDelegate(
+                            typeof(Action<GameObject>), ping);
                 }
                 else _host.Log.LogWarning("AzuAutoStore: manual TryStore() API unavailable; Sirroh backend remains active.");
 
@@ -104,6 +118,28 @@ namespace Sirroh.Qol
                     _azuToggleName = AccessTools.Method(favorites, "ToggleItemNameFavoriting");
                     _azuToggleSlot = AccessTools.Method(favorites,
                         "ToggleSlotFavoriting", new[] { typeof(Vector2i) });
+                    if (_azuToggleName != null)
+                    {
+                        _azuSharedName = AccessTools.Field(
+                            _azuToggleName.GetParameters()[0].ParameterType, "m_name");
+                        if (_azuSharedName != null)
+                            _host.Patch("AzuAutoStore.FavoriteNameSync", _azuToggleName,
+                                postfix: AccessTools.Method(typeof(QolAzuAutoStoreCompatibility),
+                                    nameof(AfterAzuNameToggle)));
+                    }
+                    if (_azuToggleSlot != null)
+                        _host.Patch("AzuAutoStore.FavoriteSlotSync", _azuToggleSlot,
+                            postfix: AccessTools.Method(typeof(QolAzuAutoStoreCompatibility),
+                                nameof(AfterAzuSlotToggle)));
+                    Type favoriteUi = AccessTools.TypeByName(
+                        "AzuAutoStore.Patches.Favoriting.InventoryGridButtonHandlingPatches");
+                    MethodInfo favoriteClick = favoriteUi == null ? null :
+                        AccessTools.Method(favoriteUi, "HandleClick",
+                            new[] { typeof(InventoryGrid), typeof(Vector2i), typeof(bool), typeof(bool) });
+                    if (favoriteClick != null)
+                        _host.Patch("AzuAutoStore.AvoidDoubleFavoriteClick", favoriteClick,
+                            prefix: AccessTools.Method(typeof(QolAzuAutoStoreCompatibility),
+                                nameof(BeforeAzuFavoriteClick)), priority: Priority.First);
                     if (slotCheck != null)
                     {
                         ParameterExpression slot = Expression.Parameter(typeof(Vector2i), "slot");
@@ -130,13 +166,74 @@ namespace Sirroh.Qol
         private static bool BeforeAzuManualStore()
         {
             if (_callingFromSirroh) return true;
-            if (!UseAzuQuickStack) return false; // Sirroh selected: suppress overlapping Azu hotkey.
+            if (!UseAzuQuickStack)
+            {
+                // Redirect Azu's full-inventory shortcut to the selected Sirroh engine.
+                QolNearbyInventory.StartArea(true);
+                return false;
+            }
             // If the user mapped Azu's manual shortcut to Q, Sirroh Q owns the
             // request. Preserve Azu's independent shortcut on other keys.
             if (Input.GetKeyDown(KeyCode.Q) || _lastSirrohDispatchFrame == Time.frameCount)
                 return false;
             _lastNativeDispatchFrame = Time.frameCount;
             return true;
+        }
+
+        private static bool BeforeAzuSingleStore(ItemDrop.ItemData __0, Inventory __1)
+        {
+            if (UseAzuQuickStack) return true;
+            Player player = Player.m_localPlayer;
+            if (player == null || __0 == null || __1 != player.GetInventory()) return true;
+            // Azu's MMB single-item action becomes Sirroh QuickStack when Sirroh is selected.
+            QolNearbyInventory.StartArea(true);
+            return false;
+        }
+
+        internal static bool PingChest(GameObject container)
+        {
+            if (_azuPingChest == null || container == null) return false;
+            try { _azuPingChest(container); return true; }
+            catch (Exception ex)
+            {
+                _host?.Log.LogWarning("Azu container ping fallback: " + ex.Message);
+                _azuPingChest = null;
+                return false;
+            }
+        }
+
+        private static bool BeforeAzuFavoriteClick(InventoryGrid __0, ref bool __result)
+        {
+            if (!QolFavorites.ShouldHandleSirrohFavorite(__0)) return true;
+            __result = true;
+            return false;
+        }
+
+        private static bool OwnPlayerConfig(object instance)
+        {
+            Player p = Player.m_localPlayer;
+            return p != null && ReferenceEquals(instance, PlayerFavorites(p.GetInventory()));
+        }
+
+        private static void AfterAzuNameToggle(object __instance, object __0)
+        {
+            if (_mirroringToAzu || __0 == null || _azuNameFavorite == null ||
+                _azuSharedName == null || !OwnPlayerConfig(__instance)) return;
+            try
+            {
+                string key = _azuSharedName.GetValue(__0) as string;
+                if (key != null)
+                    QolFavorites.SyncFromAzuName(key, (bool)_azuNameFavorite.Invoke(__instance,
+                        new[] { __0 }));
+            }
+            catch (Exception e) { _host?.Log.LogWarning("Azu favorites name sync: " + e.Message); }
+        }
+
+        private static void AfterAzuSlotToggle(object __instance, Vector2i __0)
+        {
+            if (_mirroringToAzu || _azuSlotFavorite == null || !OwnPlayerConfig(__instance)) return;
+            try { QolFavorites.SyncFromAzuSlot(__0, _azuSlotFavorite(__instance, __0)); }
+            catch (Exception e) { _host?.Log.LogWarning("Azu favorites slot sync: " + e.Message); }
         }
 
         internal static bool DispatchQuickStack()
@@ -231,7 +328,11 @@ namespace Sirroh.Qol
             {
                 object config = PlayerFavorites(inventory);
                 if (config != null && IsAzuNameFavorite(item, inventory) != selected)
-                    _azuToggleName.Invoke(config, new object[] { item.m_shared });
+                {
+                    _mirroringToAzu = true;
+                    try { _azuToggleName.Invoke(config, new object[] { item.m_shared }); }
+                    finally { _mirroringToAzu = false; }
+                }
             }
             catch (Exception error)
             {
@@ -246,7 +347,11 @@ namespace Sirroh.Qol
             {
                 object config = PlayerFavorites(inventory);
                 if (config != null && _azuSlotFavorite(config, slot) != selected)
-                    _azuToggleSlot.Invoke(config, new object[] { slot });
+                {
+                    _mirroringToAzu = true;
+                    try { _azuToggleSlot.Invoke(config, new object[] { slot }); }
+                    finally { _mirroringToAzu = false; }
+                }
             }
             catch (Exception error)
             {
@@ -279,6 +384,9 @@ namespace Sirroh.Qol
             _detected = false;
             _bound = false;
             _azuManualStore = null;
+            _azuPingChest = null;
+            _azuSharedName = null;
+            _mirroringToAzu = false;
             _azuFavorite = null;
             _getPlayerConfig = null;
             _azuSlotFavorite = null;

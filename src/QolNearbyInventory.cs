@@ -32,6 +32,8 @@ namespace Sirroh.Qol
         private static readonly List<ItemDrop.ItemData> PlayerItems = new List<ItemDrop.ItemData>(64);
         private static readonly FieldInfo ContainerOpenEffects = AccessTools.Field(typeof(Container), "m_openEffects");
         private static bool _busy;
+        private static int _lastStartFrame = -1;
+        private static GameObject _pingPrefab;
         private static float _nextKey;
 
         internal static void Install(Plugin host)
@@ -134,6 +136,8 @@ namespace Sirroh.Qol
         internal static void StartArea(bool quick)
         {
             if (_host == null || _busy || Player.m_localPlayer == null) return;
+            if (quick && _lastStartFrame == Time.frameCount) return;
+            if (quick) _lastStartFrame = Time.frameCount;
             if (quick && QolAzuAutoStoreCompatibility.DispatchQuickStack()) return;
             _host.StartCoroutine(Execute(Player.m_localPlayer, quick));
         }
@@ -202,6 +206,8 @@ namespace Sirroh.Qol
             _busy = true;
             int moved = 0, touched = 0, skipped = 0;
             Container firstModified = null;
+            string firstItem = null;
+            bool multipleTypes = false;
             Budget.Restart();
             try
             {
@@ -289,8 +295,16 @@ namespace Sirroh.Qol
                             if (QolFavorites.IsFavorite(own,src)) continue;
                             int before = own.m_stack;
                             dest.MoveItemToThis(src,own);
-                            movedChest += src.ContainsItem(own)
+                            int delta = src.ContainsItem(own)
                                 ? Math.Max(0,before-own.m_stack) : before;
+                            movedChest += delta;
+                            if (delta > 0)
+                            {
+                                string name = own.m_shared.m_name;
+                                if (firstItem == null) firstItem = name;
+                                else if (!string.Equals(firstItem, name, StringComparison.Ordinal))
+                                    multipleTypes = true;
+                            }
                         }
                         else
                         {
@@ -331,6 +345,7 @@ namespace Sirroh.Qol
                         touched++;
                         if (firstModified == null) firstModified = chest;
                         QolGameAccess.Save(chest); // once per changed chest
+                        if (quick) PingQuickStackChest(chest); // once per modified destination
                     }
                     ClearContentIndex();
                     if (Budget.Elapsed.TotalMilliseconds >= FrameBudgetMs)
@@ -339,11 +354,22 @@ namespace Sirroh.Qol
                         Budget.Restart();
                     }
                 }
-                player.Message(MessageHud.MessageType.TopLeft,
-                    (quick ? "Quickstack: " : "Restock: ") + moved +
-                    " szt. / " + touched + " skrzyń" +
-                    (skipped>0 ? " (pominięto: "+skipped+")" : ""));
-                if (moved>0) PlayFeedback(firstModified,player);
+                if (quick && moved > 0)
+                {
+                    string text = !multipleTypes && firstItem != null
+                        ? "Przeniesiono " +
+                          (Localization.instance != null
+                              ? Localization.instance.Localize(firstItem) : firstItem) +
+                          " (x" + moved + ") do pobliskiej skrzyni."
+                        : "Przeniesiono " + moved + " przedmiotów do pobliskich skrzyń.";
+                    player.Message(MessageHud.MessageType.TopLeft, text);
+                }
+                else
+                    player.Message(MessageHud.MessageType.TopLeft,
+                        (quick ? "Quickstack: " : "Restock: ") + moved +
+                        " szt. / " + touched + " skrzyń" +
+                        (skipped>0 ? " (pominięto: "+skipped+")" : ""));
+                if (moved > 0 && !quick) PlayFeedback(firstModified,player);
             }
             finally
             {
@@ -400,6 +426,45 @@ namespace Sirroh.Qol
             // interpolation can change while a remote batch is underway.
             if (chest.GetComponentInParent<Ship>() != null) return false;
             return true;
+        }
+
+        private static void PingQuickStackChest(Container chest)
+        {
+            if (chest == null) return;
+            // When Azu is installed, use its actual configured PingContainer
+            // (both its VFX and chest highlight) instead of approximating it.
+            if (!QolAzuAutoStoreCompatibility.PingChest(chest.gameObject))
+            {
+                try
+                {
+                    if (ZNetScene.instance != null)
+                    {
+                        if (_pingPrefab == null)
+                            _pingPrefab = ZNetScene.instance.GetPrefab("vfx_Potion_health_medium");
+                        if (_pingPrefab != null)
+                        {
+                            GameObject effect = UnityEngine.Object.Instantiate(_pingPrefab,
+                                chest.transform.position, Quaternion.identity);
+                            if (effect != null) UnityEngine.Object.Destroy(effect, 10f);
+                        }
+                    }
+                }
+                catch (Exception error)
+                {
+                    _host?.Log.LogDebug("QuickStack chest ping: " + error.Message);
+                }
+            }
+            try
+            {
+                if (InventoryGui.instance != null &&
+                    QolGameAccess.CurrentContainer(InventoryGui.instance) != chest)
+                    InventoryGui.instance.m_moveItemEffects.Create(chest.transform.position,
+                        Quaternion.identity, null, 1f, -1, default(ZDOID));
+            }
+            catch (Exception error)
+            {
+                _host?.Log.LogDebug("QuickStack move effect: " + error.Message);
+            }
         }
 
         private static void PlayFeedback(Container source, Player player)
