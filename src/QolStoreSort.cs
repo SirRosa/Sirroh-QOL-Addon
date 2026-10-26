@@ -28,6 +28,7 @@ namespace Sirroh.Qol
         private static RectTransform _woodRect;
         private static Canvas _canvas;
         private static InventoryGui _gui;
+        private static bool _inventoryShowing;
         private static int _screenWidth, _screenHeight;
 
         private const float DesignWidth = 1920f;
@@ -65,6 +66,7 @@ namespace Sirroh.Qol
         private static void OnShow(InventoryGui __instance)
         {
             Ensure(__instance);
+            _inventoryShowing = true;
             Align(__instance);
             RefreshVisibility(__instance);
             // Reuse the native shader; do not run a parallel day/night timer.
@@ -75,6 +77,7 @@ namespace Sirroh.Qol
 
         private static void OnHide()
         {
+            _inventoryShowing = false;
             if (_overlay != null) _overlay.SetActive(false);
             if (_woodRoot != null) _woodRoot.SetActive(false);
             if (_favoritePanel != null) _favoritePanel.SetActive(false);
@@ -104,9 +107,9 @@ namespace Sirroh.Qol
         private static void RefreshVisibility(InventoryGui gui)
         {
             if (gui == null || gui != _gui || _overlay == null) return;
-            Animator animator = gui.GetComponent<Animator>();
-            bool show = InventoryGui.IsVisible()
-                && (animator == null || animator.GetBool("visible"))
+            // Show/Hide patches provide exact visibility without relying on
+            // InventoryGui.IsVisible()'s one-frame grace period after Hide.
+            bool show = _inventoryShowing && InventoryGui.IsVisible()
                 && gui.m_player != null && gui.m_player.gameObject.activeInHierarchy
                 && !HasBlockingDialog(gui)
                 && !UnifiedPopup.IsVisible() && !Menu.IsVisible();
@@ -534,6 +537,7 @@ namespace Sirroh.Qol
             if(_woodRoot!=null)UnityEngine.Object.Destroy(_woodRoot);
             _favoritePanel=null;_overlay=null;_woodRoot=null;
             _overlayRect=null;_woodRect=null;_canvas=null;_gui=null;
+            _inventoryShowing = false;
             _favoriteButton=null;_favoriteImage=null;_storeButton=null;
             _favoriteHover=null;_sort=null;_quick=null;_restock=null;
             _recycleWood=null;_sortWood=null;_quickWood=null;_restockWood=null;
