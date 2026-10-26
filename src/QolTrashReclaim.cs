@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -14,7 +13,8 @@ namespace Sirroh.Qol
             AccessTools.MethodDelegate<Action<ItemDrop>>(AccessTools.Method(typeof(ItemDrop), "Save"));
         private static RectTransform _buttonRect;
         private static GameObject _buttonObject;
-        private static GameObject _confirm;
+        private static bool _confirmationPending;
+        private static int _confirmationFrame;
         private static ItemDrop.ItemData _pendingItem;
         private static Inventory _pendingInventory;
         private static int _pendingAmount;
@@ -102,7 +102,8 @@ namespace Sirroh.Qol
 
         private static bool Dragging(InventoryGui __instance)
         {
-            if (_buttonRect == null || _confirm != null || __instance == null ||
+            if (_buttonRect == null || !QolStoreSort.ActionsVisible ||
+                _confirmationPending || __instance == null ||
                 QolGameAccess.DragItem(__instance) == null || QolGameAccess.DragSource(__instance) == null)
                 return true;
             if (!Input.GetMouseButtonUp(0) || !RectTransformUtility.RectangleContainsScreenPoint(
@@ -113,7 +114,8 @@ namespace Sirroh.Qol
 
         private static void OnButtonClicked()
         {
-            if (_confirm != null || InventoryGui.instance == null || Player.m_localPlayer == null) return;
+            if (_confirmationPending || !QolStoreSort.ActionsVisible ||
+                InventoryGui.instance == null || Player.m_localPlayer == null) return;
             InventoryGui gui = InventoryGui.instance;
             ItemDrop.ItemData item = QolGameAccess.DragItem(gui);
             Inventory from = QolGameAccess.DragSource(gui);
@@ -369,63 +371,53 @@ namespace Sirroh.Qol
 
         private static void ShowConfirmation(ItemDrop.ItemData item, Inventory source, int amount)
         {
-            InventoryGui gui = InventoryGui.instance;
-            if (gui == null) return;
-            _pendingItem = item; _pendingInventory = source; _pendingAmount = amount;
-            Transform canvas = gui.transform;
-            _confirm = new GameObject("SirrohDestroyConfirm", typeof(RectTransform), typeof(Image));
-            _confirm.transform.SetParent(canvas, false);
-            RectTransform root = _confirm.GetComponent<RectTransform>();
-            root.anchorMin = root.anchorMax = new Vector2(.5f, .5f);
-            root.sizeDelta = new Vector2(510f, 200f);
-            root.anchoredPosition = Vector2.zero;
-            _confirm.transform.SetAsLastSibling();
-            Image bg = _confirm.GetComponent<Image>();
-            if (QolFavorites.RecyclePanel != null) bg.sprite = QolFavorites.RecyclePanel;
-            bg.color = new Color(.075f, .07f, .065f, .98f);
-            AddText("ConfirmationText", root, "Czy na pewno chcesz zniszczyć ten przedmiot?",
-                new Vector2(0f, 44f), new Vector2(490f, 88f), 22f);
-            AddButton(root, "Tak", new Vector2(-110f, -58f), ConfirmDelete);
-            AddButton(root, "Nie", new Vector2(110f, -58f), ClearDialog);
+            if (InventoryGui.instance == null || !UnifiedPopup.IsAvailable() ||
+                UnifiedPopup.IsVisible())
+            {
+                Message("Nie można otworzyć potwierdzenia. Przedmiot nie został zniszczony.");
+                return;
+            }
+            _pendingItem = item;
+            _pendingInventory = source;
+            _pendingAmount = amount;
+            _confirmationPending = true;
+            _confirmationFrame = Time.frameCount;
+            try
+            {
+                // Valheim owns the frame, fonts, animations, buttons, inputs
+                // and translations. No ad-hoc Image/Button/TMP dialog.
+                UnifiedPopup.Push(new YesNoPopup(
+                    "Potwierdzenie usunięcia",
+                    "Czy na pewno chcesz zniszczyć ten przedmiot?",
+                    ApproveDelete, CancelDelete, false, false));
+            }
+            catch (Exception e)
+            {
+                ClearDialog();
+                _host?.Log.LogWarning("TrashReclaim: native confirmation unavailable: " + e);
+                Message("Nie można otworzyć potwierdzenia. Przedmiot nie został zniszczony.");
+            }
         }
 
-        private static void AddText(string name, RectTransform parent, string text,
-            Vector2 at, Vector2 size, float fontSize)
+        private static void ApproveDelete()
         {
-            // Delay TMP OnEnable until a valid in-game font has been assigned.
-            // Otherwise TMP attempts to load missing LiberationSans fallback.
-            GameObject go = new GameObject(name, typeof(RectTransform));
-            go.SetActive(false);
-            go.transform.SetParent(parent, false);
-            TextMeshProUGUI t = go.AddComponent<TextMeshProUGUI>();
-            RectTransform rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = rt.anchorMax = new Vector2(.5f,.5f);
-            rt.anchoredPosition = at;
-            rt.sizeDelta = size;
-            InventoryGui gui = InventoryGui.instance;
-            TMP_FontAsset font = gui?.m_playerName != null ? gui.m_playerName.font : null;
-            if (font == null && gui?.m_recipeName != null) font = gui.m_recipeName.font;
-            if (font == null && gui?.m_craftingStationName != null)
-                font = gui.m_craftingStationName.font;
-            if (font != null) t.font = font;
-            t.text = text;
-            t.fontSize = fontSize;
-            t.alignment = TextAlignmentOptions.Center;
-            t.raycastTarget = false;
-            go.SetActive(true);
+            UnifiedPopup.Pop();
+            ConfirmDelete();
         }
 
-        private static void AddButton(RectTransform parent, string label, Vector2 at, Action action)
+        private static void CancelDelete()
         {
-            GameObject go = new GameObject(label, typeof(RectTransform), typeof(Image), typeof(Button));
-            go.transform.SetParent(parent, false);
-            RectTransform rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = rt.anchorMax = new Vector2(.5f,.5f);
-            rt.anchoredPosition = at;
-            rt.sizeDelta = new Vector2(170f, 58f);
-            go.GetComponent<Image>().color = new Color(.35f, .30f, .24f, 1f);
-            go.GetComponent<Button>().onClick.AddListener(() => action());
-            AddText("Label", rt, label, Vector2.zero, rt.sizeDelta, 24f);
+            UnifiedPopup.Pop();
+            ClearDialog();
+        }
+
+        internal static void Tick()
+        {
+            // Escape/back can dismiss the native popup without invoking the
+            // explicit No action. Do not retain a stale destructive operation.
+            if (_confirmationPending && Time.frameCount > _confirmationFrame + 1 &&
+                !UnifiedPopup.IsVisible())
+                ClearDialog();
         }
 
         private static void ConfirmDelete()
@@ -441,8 +433,8 @@ namespace Sirroh.Qol
 
         private static void ClearDialog()
         {
-            if (_confirm != null) UnityEngine.Object.Destroy(_confirm);
-            _confirm = null; _pendingItem = null; _pendingInventory = null; _pendingAmount = 0;
+            _confirmationPending = false;
+            _pendingItem = null; _pendingInventory = null; _pendingAmount = 0;
         }
 
         private static void Message(string message)

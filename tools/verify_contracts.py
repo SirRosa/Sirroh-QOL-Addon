@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 19, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.27"' in source["Plugin"]
+assert 'Version = "0.1.28"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -152,7 +152,20 @@ assert "QolGameAccess.ButtonPosition" in source["QolFavorites"]
 assert "SirrohQOLFavorites_" in source["QolFavorites"]
 assert "BinaryFormatter" not in source["QolFavorites"]
 assert "Czy na pewno chcesz zniszczyć ten przedmiot?" in source["QolTrashReclaim"]
-assert '"Tak"' in source["QolTrashReclaim"] and '"Nie"' in source["QolTrashReclaim"]
+assert "new YesNoPopup(" in source["QolTrashReclaim"]
+assert "UnifiedPopup.Push(" in source["QolTrashReclaim"]
+assert "UnifiedPopup.Pop();" in source["QolTrashReclaim"]
+assert "UnifiedPopup.IsAvailable()" in source["QolTrashReclaim"]
+assert "QolTrashReclaim.Tick();" in source["Plugin"]
+assert "SirrohDestroyConfirm" not in source["QolTrashReclaim"]
+assert "new GameObject(\"ConfirmationText\"" not in source["QolTrashReclaim"]
+assert "AddButton(root," not in source["QolTrashReclaim"]
+assert "HasBlockingDialog(gui)" in source["QolStoreSort"]
+for modal in ("m_skillsDialog", "m_textsDialog", "m_trophiesPanel", "m_achievementsPanel", "m_variantDialog", "m_splitDialog"):
+    assert modal in source["QolStoreSort"], modal
+assert "SetAsLastSibling()" not in source["QolStoreSort"]
+assert "_overlay.transform.SetSiblingIndex(gui.m_player.GetSiblingIndex() + 1)" in source["QolStoreSort"]
+assert "!QolStoreSort.ActionsVisible" in source["QolTrashReclaim"]
 assert "GetEmptySlots()" in source["QolTrashReclaim"]
 assert "FindFreeStackSpace" in source["QolTrashReclaim"]
 assert "100% materiałów" in source["QolTrashReclaim"]
@@ -160,7 +173,7 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.27"
+assert manifest["version_number"] == "0.1.28"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
 

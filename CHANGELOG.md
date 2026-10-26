@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.28
+- Keep Quickstack, Restock, Sort, Recycle and Favorite inventory tabs below other window layers and hide them while Valheim skills, journal, trophies, achievements, split-stack or variant dialogs are open.
+- Prevent hidden Recycle hitboxes from accepting a drag during a modal dialog.
+- Replace custom grey destruction-confirmation rectangles with Valheim's native localized YesNoPopup. Preserve explicit confirmation, inventory validation and no-delete cancellation.
+- Discard pending delete state if the native popup is dismissed with Escape/back. Other gameplay, item-reclaim and UI appearance logic is unchanged.
+
+
 ## 0.1.27
 - Fix Sirroh QuickStack chest VFX failing because Azu's optional PingContainer is gated by external settings/existing components: directly instantiate the identical vfx_Potion_health_medium per modified destination and temporarily highlight WearNTear.
 - Eliminate Harmony missing-field warning for Localization.instance by resolving field/property once with normal reflection.

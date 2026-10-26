@@ -65,10 +65,8 @@ namespace Sirroh.Qol
         private static void OnShow(InventoryGui __instance)
         {
             Ensure(__instance);
-            if (_overlay != null) _overlay.SetActive(true);
-            if (_woodRoot != null) _woodRoot.SetActive(true);
-            if (_favoritePanel != null) _favoritePanel.SetActive(true);
             Align(__instance);
+            RefreshVisibility(__instance);
             // Reuse the native shader; do not run a parallel day/night timer.
             QolNativeUiLighting.Sync(__instance, _woodRoot, _overlay, _favoritePanel);
             if (Plugin.Instance != null)
@@ -86,6 +84,36 @@ namespace Sirroh.Qol
         {
             Ensure(gui);
             return _overlayRect;
+        }
+
+        internal static bool ActionsVisible => _overlay != null && _overlay.activeInHierarchy;
+
+        // These are the Valheim 1.0 inventory modal screens. They may be
+        // drawn in a different canvas or earlier sibling order by UI mods,
+        // so z-order alone cannot reliably conceal our free-positioned tabs.
+        private static bool HasBlockingDialog(InventoryGui gui)
+        {
+            return gui.m_skillsDialog != null && gui.m_skillsDialog.gameObject.activeInHierarchy
+                || gui.m_textsDialog != null && gui.m_textsDialog.gameObject.activeInHierarchy
+                || gui.m_trophiesPanel != null && gui.m_trophiesPanel.activeInHierarchy
+                || gui.m_achievementsPanel != null && gui.m_achievementsPanel.gameObject.activeInHierarchy
+                || gui.m_variantDialog != null && gui.m_variantDialog.gameObject.activeInHierarchy
+                || gui.m_splitDialog != null && gui.m_splitDialog.gameObject.activeInHierarchy;
+        }
+
+        private static void RefreshVisibility(InventoryGui gui)
+        {
+            if (gui == null || gui != _gui || _overlay == null) return;
+            Animator animator = gui.GetComponent<Animator>();
+            bool show = InventoryGui.IsVisible()
+                && (animator == null || animator.GetBool("visible"))
+                && gui.m_player != null && gui.m_player.gameObject.activeInHierarchy
+                && !HasBlockingDialog(gui)
+                && !UnifiedPopup.IsVisible() && !Menu.IsVisible();
+            if (_overlay.activeSelf != show) _overlay.SetActive(show);
+            if (_woodRoot != null && _woodRoot.activeSelf != show) _woodRoot.SetActive(show);
+            if (_favoritePanel != null && _favoritePanel.activeSelf != show)
+                _favoritePanel.SetActive(show);
         }
 
         private static void Ensure(InventoryGui gui)
@@ -110,7 +138,9 @@ namespace Sirroh.Qol
             _overlay.transform.SetParent(parent, false);
             _overlayRect = _overlay.GetComponent<RectTransform>();
             Stretch(_overlayRect);
-            _overlay.transform.SetAsLastSibling();
+            // Place actions directly above the inventory, not above every
+            // vanilla/third-party dialog sharing this parent.
+            _overlay.transform.SetSiblingIndex(gui.m_player.GetSiblingIndex() + 1);
             // The HUD must never capture clicks outside the icon rects.
             // This overlay has no Image or other raycast-capable component.
 
@@ -434,6 +464,7 @@ namespace Sirroh.Qol
 
         internal static void Tick()
         {
+            RefreshVisibility(_gui);
             if (_overlay!=null && _overlay.activeInHierarchy &&
                 (_screenWidth!=Screen.width || _screenHeight!=Screen.height))
             {
