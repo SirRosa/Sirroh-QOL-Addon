@@ -460,10 +460,11 @@ assert 'LocalizationType.GetProperty("instance", LocalizationStatic)' in invento
 assert 'AccessTools.Field(LocalizationType, "instance")' not in inventory
 assert 'typeof(ObjectDB).GetMethods(' in cache
 assert 'AccessTools.Method(typeof(ObjectDB), mutations[i])' not in cache
-assert 'new GameObject(name, typeof(RectTransform));' in reclaim
-assert 'go.SetActive(false);' in reclaim
-assert 'TMP_FontAsset font' in reclaim
-assert 'if (font != null) t.font = font;' in reclaim
-assert 'go.SetActive(true);' in reclaim
+# Native Valheim confirmation supersedes the temporary TMP controls.
+assert 'new YesNoPopup(' in reclaim
+assert 'UnifiedPopup.Push(' in reclaim
+assert 'ApproveDelete, CancelDelete, false, false' in reclaim
+assert 'new GameObject(name, typeof(RectTransform));' not in reclaim
+assert 'TMP_FontAsset font' not in reclaim
 assert 'Log.LogDebug("TrashReclaim: no usable recipe' in reclaim
 assert 'Log.LogInfo(' in ui
