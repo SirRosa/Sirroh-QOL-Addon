@@ -11,10 +11,11 @@ namespace Sirroh.Qol
     [BepInDependency("sirro.valheim.pracafizyczna", "0.22.65")]
     [BepInDependency("randyknapp.mods.epicloot", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("org.bepinex.plugins.jewelcrafting", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("Azumatt.AzuCraftyBoxes", BepInDependency.DependencyFlags.SoftDependency)]
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "sirro.valheim.qoladdon";
-        public const string Version = "0.1.30";
+        public const string Version = "0.1.31";
         internal static Plugin Instance;
         internal ManualLogSource Log => Logger;
         private Harmony _harmony;
@@ -74,6 +75,7 @@ namespace Sirroh.Qol
             QolRecipeListSafety.Install(this);
             QolFavorites.Install(this);
             QolAzuAutoStoreCompatibility.Install(this);
+            QolAzuCraftyBoxesPlanBuildCompatibility.Install(this);
             QolNearbyInventory.Install(this);
             QolTrashReclaim.Install(this);
             QolStoreSort.Install(this);
@@ -116,6 +118,7 @@ namespace Sirroh.Qol
             try { QolNearbyInventory.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { QolTrashReclaim.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { QolFavorites.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
+            try { QolAzuCraftyBoxesPlanBuildCompatibility.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { QolAzuAutoStoreCompatibility.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { ConstructionCamera.Shutdown(); } catch (Exception e) { Logger.LogWarning(e); }
             try { _harmony?.UnpatchSelf(); } catch (Exception e) { Logger.LogWarning(e); }
