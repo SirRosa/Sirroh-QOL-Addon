@@ -1,6 +1,8 @@
+> **0.1.31 test:** Optional AzuCraftyBoxes (verified against 1.8.28) compatibility: PlanBuild-imported buildable chest prefabs with missing creator metadata are no longer rejected during Azu container registration. Azu access, ward, pull toggle, MineOnly, in-use, distance and YAML rules stay authoritative. Does not modify Azu DLL or crafting logic. Install AzuCraftyBoxes separately; test in-game before release.
+
 > Test build 0.1.30: PlanBuild-imported chests no longer require Piece.IsPlacedByPlayer(), but vanilla access/ward/in-use/network and ship restrictions remain. Rejection counts are logged by reason in BepInEx LogOutput.log. Thunderstore package identifier: `Sirroh_QOL_Addon`; BepInEx display name: `Sirroh QOL [Addon]`.
 
-# Sirroh QOL Addon — 0.1.29 (test release)
+# Sirroh QOL Addon — 0.1.31 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 
