@@ -62,7 +62,7 @@ namespace Sirroh.Qol
                 // or the player's no-pull toggle is active: never bypass either.
                 if ((bool)_shouldPrevent.Invoke(null, null)) return;
 
-                ZNetView view = container.m_nview;
+                ZNetView view = QolGameAccess.View(container);
                 if (view == null || !view.IsValid() || view.GetZDO() == null ||
                     container.GetInventory() == null ||
                     view.GetZDO().GetLong(ZDOVars.s_creator, 0L) != 0L) return;
