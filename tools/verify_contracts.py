@@ -156,6 +156,13 @@ assert "QolIconHover" in source["QolStoreSort"]
 assert "KeyCode.Q" in source["QolNearbyInventory"] and "KeyCode.R" in source["QolNearbyInventory"]
 assert "RangeSq = 100f * 100f" in source["QolNearbyInventory"]
 assert "MoveItemToThis" in source["QolNearbyInventory"]
+assert "Sirroh QOL [Addon]" in source["Plugin"]
+assert "IsPlacedByPlayer()" not in source["QolNearbyInventory"]
+assert "ChestSkipReason" in source["QolNearbyInventory"]
+assert "ownershipTimeout=" in source["QolNearbyInventory"]
+assert "PrivateArea.CheckAccess" in source["QolNearbyInventory"]
+assert "chest.IsInUse()" in source["QolNearbyInventory"]
+assert "chest.GetComponentInParent<Ship>()" in source["QolNearbyInventory"]
 assert "ClaimOwnership()" in source["QolNearbyInventory"]
 assert "QolGameAccess.CheckAccess(chest, player.GetPlayerID())" in source["QolNearbyInventory"]
 assert "QolFavorites.IsFavorite" in source["QolNearbyInventory"]
@@ -185,8 +192,8 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.29"
-assert manifest["name"] == "SirrohQOLAddon"
+assert manifest["version_number"] == "0.1.30"
+assert manifest["name"] == "Sirroh_QOL_Addon"
 print("Source and Thunderstore manifest contracts: PASS")
 
 assert "VisibleRailInset = 6f" in source["QolStoreSort"]

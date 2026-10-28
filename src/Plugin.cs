@@ -7,14 +7,14 @@ using HarmonyLib;
 
 namespace Sirroh.Qol
 {
-    [BepInPlugin(Guid, "Sirroh QOL Addon", Version)]
+    [BepInPlugin(Guid, "Sirroh QOL [Addon]", Version)]
     [BepInDependency("sirro.valheim.pracafizyczna", "0.22.65")]
     [BepInDependency("randyknapp.mods.epicloot", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("org.bepinex.plugins.jewelcrafting", BepInDependency.DependencyFlags.SoftDependency)]
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "sirro.valheim.qoladdon";
-        public const string Version = "0.1.29";
+        public const string Version = "0.1.30";
         internal static Plugin Instance;
         internal ManualLogSource Log => Logger;
         private Harmony _harmony;
@@ -77,7 +77,7 @@ namespace Sirroh.Qol
             QolNearbyInventory.Install(this);
             QolTrashReclaim.Install(this);
             QolStoreSort.Install(this);
-            Logger.LogInfo("Sirroh QOL Addon " + Version + " initialized (Sirroh Overhaul >=0.22.65 required).");
+            Logger.LogInfo("Sirroh QOL [Addon] " + Version + " initialized (Sirroh Overhaul >=0.22.65 required).");
         }
 
         internal void Patch(string module, MethodBase original, MethodInfo prefix = null, MethodInfo postfix = null, int priority = Priority.Normal,

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.30 (test)
+- Quickstack and Restock now allow player-accessible chests reconstructed from PlanBuild blueprints even if the original Piece creator flag was not preserved. Vanilla Container.CheckAccess, ward checks, InUse and network ownership remain enforced; moving ship containers remain excluded.
+- Report breakdown of rejected containers (invalid state, access, ward, in-use, ship and ownership timeout) once per operation in BepInEx logs. No extra continuous scanning.
+- Rename BepInEx display to Sirroh QOL [Addon] and use Thunderstore-compliant name Sirroh_QOL_Addon (Thunderstore forbids brackets/spaces).
+- Use the supplied 256x256 transparent PNG as the Thunderstore icon; the packager no longer replaces it with a generated placeholder.
+- No changes to stack-size settings or other QOL modules.
+
 ## 0.1.29
 - Optional ExtraSlots compatibility: Sirroh QuickStack and Sort now operate only on ordinary inventory rows, preserving equipment, ammo, food, quick, misc and custom slots.
 - Restock remains unchanged and continues to replenish stacks in ExtraSlots.

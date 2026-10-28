@@ -17,6 +17,7 @@ namespace Sirroh.Qol
     internal static class QolNearbyInventory
     {
         private const float RangeSq = 100f * 100f;
+        private enum ChestSkipReason { None, InvalidState, ContainerAccess, Ward, InUse, Ship, OwnershipTimeout }
         private static Plugin _host;
         private const float CellSize = 32f;
         private const double FrameBudgetMs = 2.0; // strict co-operative time slice
@@ -217,6 +218,8 @@ namespace Sirroh.Qol
             if (_busy) yield break;
             _busy = true;
             int moved = 0, touched = 0, skipped = 0;
+            // Per-operation diagnostic only; no per-frame allocation or per-chest spam.
+            int[] skipReasons = new int[7];
             Container firstModified = null;
             string firstItem = null;
             bool multipleTypes = false;
@@ -275,7 +278,13 @@ namespace Sirroh.Qol
                     if (quick && QolAzuAutoStoreCompatibility.UseAzuQuickStack) yield break;
                     Container chest = Nearby[ci];
                     if (player == null || player != Player.m_localPlayer) yield break;
-                    if (chest == null || !CanAccess(chest,player)) { skipped++; continue; }
+                    ChestSkipReason refusal;
+                    if (!CanAccess(chest, player, out refusal))
+                    {
+                        skipped++;
+                        skipReasons[(int)refusal]++;
+                        continue;
+                    }
                     Inventory dest = QolGameAccess.Inventory(chest);
                     if (dest == null || dest == src) continue;
 
@@ -296,9 +305,19 @@ namespace Sirroh.Qol
                         while (view != null && !view.IsOwner() && Time.realtimeSinceStartup < deadline)
                             yield return null;
                         Budget.Restart();
-                        if (view == null || !view.IsOwner()) { skipped++; continue; }
+                        if (view == null || !view.IsOwner())
+                        {
+                            skipped++;
+                            skipReasons[(int)ChestSkipReason.OwnershipTimeout]++;
+                            continue;
+                        }
                     }
-                    if (!CanAccess(chest,player)) { skipped++; continue; }
+                    if (!CanAccess(chest, player, out refusal))
+                    {
+                        skipped++;
+                        skipReasons[(int)refusal]++;
+                        continue;
+                    }
                     // Ownership handshake may have changed the chest inventory.
                     if (!Relevant(dest,quick)) continue;
 
@@ -389,6 +408,16 @@ namespace Sirroh.Qol
                         (quick ? "Quickstack: " : "Restock: ") + moved +
                         " szt. / " + touched + " skrzyń" +
                         (skipped>0 ? " (pominięto: "+skipped+")" : ""));
+                if (skipped > 0)
+                    _host?.Log.LogInfo((quick ? "Quickstack" : "Restock") +
+                        " chest diagnostics: nearby=" + Nearby.Count +
+                        ", skipped=" + skipped +
+                        ", invalid=" + skipReasons[(int)ChestSkipReason.InvalidState] +
+                        ", access=" + skipReasons[(int)ChestSkipReason.ContainerAccess] +
+                        ", ward=" + skipReasons[(int)ChestSkipReason.Ward] +
+                        ", inUse=" + skipReasons[(int)ChestSkipReason.InUse] +
+                        ", ship=" + skipReasons[(int)ChestSkipReason.Ship] +
+                        ", ownershipTimeout=" + skipReasons[(int)ChestSkipReason.OwnershipTimeout]);
                 if (moved > 0 && !quick) PlayFeedback(firstModified,player);
             }
             finally
@@ -430,21 +459,49 @@ namespace Sirroh.Qol
             // spatial walk, and sorting >1000 transforms was a long frame.
         }
 
-        private static bool CanAccess(Container chest, Player player)
+        private static bool CanAccess(Container chest, Player player) =>
+            CanAccess(chest, player, out _);
+
+        private static bool CanAccess(Container chest, Player player, out ChestSkipReason reason)
         {
-            if (chest == null || player == null || QolGameAccess.View(chest) == null || !QolGameAccess.View(chest).IsValid() ||
-                QolGameAccess.Inventory(chest) == null || QolGameAccess.View(chest).GetZDO() == null) return false;
-            if (!QolGameAccess.CheckAccess(chest, player.GetPlayerID())) return false;
-            if (chest.m_checkGuardStone && !PrivateArea.CheckAccess(chest.transform.position, 0f, true, false))
+            reason = ChestSkipReason.None;
+            if (chest == null || player == null || QolGameAccess.View(chest) == null ||
+                !QolGameAccess.View(chest).IsValid() ||
+                QolGameAccess.Inventory(chest) == null ||
+                QolGameAccess.View(chest).GetZDO() == null)
+            {
+                reason = ChestSkipReason.InvalidState;
                 return false;
+            }
+
+            // Vanilla permissions must remain authoritative. PlanBuild may recreate
+            // legitimate, accessible player storage without retaining the original
+            // Piece creator flag: IsPlacedByPlayer is NOT a permission check.
+            if (!QolGameAccess.CheckAccess(chest, player.GetPlayerID()))
+            {
+                reason = ChestSkipReason.ContainerAccess;
+                return false;
+            }
+            if (chest.m_checkGuardStone &&
+                !PrivateArea.CheckAccess(chest.transform.position, 0f, true, false))
+            {
+                reason = ChestSkipReason.Ward;
+                return false;
+            }
             bool openedLocally = InventoryGui.instance != null &&
                 QolGameAccess.CurrentContainer(InventoryGui.instance) == chest;
             if (!openedLocally && (chest.IsInUse() ||
-                QolGameAccess.View(chest).GetZDO().GetInt("InUse", 0) == 1)) return false;
-            if (QolGameAccess.Piece(chest) != null && !QolGameAccess.Piece(chest).IsPlacedByPlayer()) return false;
-            // On shared worlds, skip ship containers: their ownership and
-            // interpolation can change while a remote batch is underway.
-            if (chest.GetComponentInParent<Ship>() != null) return false;
+                QolGameAccess.View(chest).GetZDO().GetInt("InUse", 0) == 1))
+            {
+                reason = ChestSkipReason.InUse;
+                return false;
+            }
+            // Never hijack moving ship storage; keep multiplayer ownership handshake.
+            if (chest.GetComponentInParent<Ship>() != null)
+            {
+                reason = ChestSkipReason.Ship;
+                return false;
+            }
             return true;
         }
 
