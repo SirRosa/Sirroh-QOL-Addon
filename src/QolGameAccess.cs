@@ -21,7 +21,7 @@ namespace Sirroh.Qol
         {
             regularHeight = inventory == null ? 0 : inventory.GetHeight();
             if (inventory == null) return false;
-            if (!Chainloader.PluginInfos.TryGetValue("shudnal.ExtraSlots", out PluginInfo plugin))
+            if (!Chainloader.PluginInfos.TryGetValue("shudnal.ExtraSlots", out var plugin))
                 return true;
 
             if (!_extraSlotsLookupDone && plugin.Instance != null)
