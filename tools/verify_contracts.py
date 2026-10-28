@@ -3,9 +3,9 @@ import json
 
 root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
-assert len(source) == 19, sorted(source)
+assert len(source) == 20, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.30"' in source["Plugin"]
+assert 'Version = "0.1.31"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -192,7 +192,7 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.30"
+assert manifest["version_number"] == "0.1.31"
 assert manifest["name"] == "Sirroh_QOL_Addon"
 print("Source and Thunderstore manifest contracts: PASS")
 
@@ -487,3 +487,19 @@ assert 'new GameObject(name, typeof(RectTransform));' not in reclaim
 assert 'TMP_FontAsset font' not in reclaim
 assert 'Log.LogDebug("TrashReclaim: no usable recipe' in reclaim
 assert 'Log.LogInfo(' in ui
+
+# 0.1.31: only relax Azu's creator==0 filter for actual placeable chest prefabs.
+# Keep the plugin optional and Azu's access/ward/in-use/MineOnly and YAML logic intact.
+azu_plan = source["QolAzuCraftyBoxesPlanBuildCompatibility"]
+assert '[BepInDependency("Azumatt.AzuCraftyBoxes", BepInDependency.DependencyFlags.SoftDependency)]' in source["Plugin"]
+assert "QolAzuCraftyBoxesPlanBuildCompatibility.Install(this);" in source["Plugin"]
+assert "QolAzuCraftyBoxesPlanBuildCompatibility.Shutdown();" in source["Plugin"]
+assert 'Chainloader.PluginInfos.TryGetValue(AzuGuid' in azu_plan
+assert '"ShouldSkipContainer"' in azu_plan and '"ShouldPrevent"' in azu_plan
+assert 'if ((bool)_shouldPrevent.Invoke(null, null)) return;' in azu_plan
+assert 'view.GetZDO().GetLong(ZDOVars.s_creator, 0L) != 0L' in azu_plan
+assert 'container.GetComponent<Piece>() == null' in azu_plan
+assert 'StartsWith("piece_chest", StringComparison.Ordinal)' in azu_plan
+assert '__result = false;' in azu_plan
+assert 'AddContainer(' not in azu_plan and 'ClaimOwnership(' not in azu_plan
+print("AzuCraftyBoxes PlanBuild compatibility contract: PASS")
