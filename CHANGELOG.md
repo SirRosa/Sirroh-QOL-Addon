@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.31 (test)
+- Compatibility with AzuCraftyBoxes 1.8.28: only when Azu is installed, permit creator-less placeable chest prefabs (piece_chest*) through its initial container registration gate. Supports PlanBuild import timing without altering Azu recipes or inventory transfer logic.
+- Preserve Azu enabled/pull toggle, vanilla access and ward checks, range, in-use handling, MineOnly mode and YAML restrictions. No Azu dependency when absent.
+- Existing Sirroh QOL modules are unchanged.
+
 ## 0.1.30 (test)
 - Quickstack and Restock now allow player-accessible chests reconstructed from PlanBuild blueprints even if the original Piece creator flag was not preserved. Vanilla Container.CheckAccess, ward checks, InUse and network ownership remain enforced; moving ship containers remain excluded.
 - Report breakdown of rejected containers (invalid state, access, ward, in-use, ship and ownership timeout) once per operation in BepInEx logs. No extra continuous scanning.
