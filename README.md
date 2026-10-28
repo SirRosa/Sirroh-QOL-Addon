@@ -1,4 +1,4 @@
-# Sirroh QOL Addon — 0.1.28 (test release)
+# Sirroh QOL Addon — 0.1.29 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 

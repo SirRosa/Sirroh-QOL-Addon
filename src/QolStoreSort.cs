@@ -488,21 +488,29 @@ namespace Sirroh.Qol
             if (player == null) return;
             Inventory inventory = player.GetInventory();
             if (inventory == null) return;
-            int width = inventory.GetWidth(), height = inventory.GetHeight();
-            if (width < 1 || height < 2) return;
+            int width = inventory.GetWidth();
+            if (width < 1 || inventory.GetHeight() < 2) return;
+            if (!QolGameAccess.TryGetQuickSortHeight(inventory, out int regularHeight))
+            {
+                player.Message(MessageHud.MessageType.TopLeft,
+                    "Sort: nie można odczytać slotów ExtraSlots; przerwano bez zmian.");
+                return;
+            }
+            if (regularHeight < 2) return;
             var fixedPositions = new HashSet<int>();
             var movable = new List<ItemDrop.ItemData>();
             var slots = new List<Vector2i>();
             foreach (ItemDrop.ItemData item in inventory.GetAllItems())
             {
-                if (item == null || item.m_shared == null) continue;
+                if (item == null || item.m_shared == null ||
+                    item.m_gridPos.y >= regularHeight) continue;
                 int position = item.m_gridPos.y * width + item.m_gridPos.x;
                 if (item.m_gridPos.y == 0 || item.m_equipped ||
                     QolFavorites.IsFavorite(item, inventory))
                     fixedPositions.Add(position);
                 else movable.Add(item);
             }
-            for (int y=1;y<height;y++)
+            for (int y=1;y<regularHeight;y++)
                 for(int x=0;x<width;x++)
                 {
                     var pos = new Vector2i(x,y);

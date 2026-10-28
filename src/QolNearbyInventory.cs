@@ -225,6 +225,13 @@ namespace Sirroh.Qol
             {
                 Inventory src = player == null ? null : player.GetInventory();
                 if (src == null) yield break;
+                int regularHeight = src.GetHeight();
+                if (quick && !QolGameAccess.TryGetQuickSortHeight(src, out regularHeight))
+                {
+                    player.Message(MessageHud.MessageType.TopLeft,
+                        "Quickstack: nie można odczytać slotów ExtraSlots; przerwano bez zmian.");
+                    yield break;
+                }
                 GetContainers(player);
                 if (Nearby.Count == 0)
                 {
@@ -238,7 +245,7 @@ namespace Sirroh.Qol
                 foreach (ItemDrop.ItemData item in src.GetAllItems())
                 {
                     if (item == null || item.m_shared == null) continue;
-                    if (quick && item.m_gridPos.y == 0) continue;
+                    if (quick && (item.m_gridPos.y == 0 || item.m_gridPos.y >= regularHeight)) continue;
                     if (item.m_equipped || item.m_shared.m_maxStackSize <= 1) continue;
                     if (quick && QolFavorites.IsFavorite(item,src)) continue;
                     if (!quick && item.m_stack >= item.m_shared.m_maxStackSize) continue;
@@ -304,7 +311,9 @@ namespace Sirroh.Qol
                             out List<ItemDrop.ItemData> matches)) continue;
                         if (quick)
                         {
-                            if (QolFavorites.IsFavorite(own,src)) continue;
+                            // Re-check after coroutine yields; an item may have moved.
+                            if (own.m_gridPos.y == 0 || own.m_gridPos.y >= regularHeight ||
+                                QolFavorites.IsFavorite(own,src)) continue;
                             int before = own.m_stack;
                             dest.MoveItemToThis(src,own);
                             int delta = src.ContainsItem(own)

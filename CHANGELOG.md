@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.29
+- Optional ExtraSlots compatibility: Sirroh QuickStack and Sort now operate only on ordinary inventory rows, preserving equipment, ammo, food, quick, misc and custom slots.
+- Restock remains unchanged and continues to replenish stacks in ExtraSlots.
+- If ExtraSlots is loaded but its API boundary is unavailable, abort QuickStack/Sort safely without moving items. No hard ExtraSlots dependency.
+
 ## 0.1.28
 - Keep Quickstack, Restock, Sort, Recycle and Favorite inventory tabs below other window layers and hide them while Valheim skills, journal, trophies, achievements, split-stack or variant dialogs are open.
 - Prevent hidden Recycle hitboxes from accepting a drag during a modal dialog.

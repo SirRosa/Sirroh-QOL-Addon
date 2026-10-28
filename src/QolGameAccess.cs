@@ -1,4 +1,6 @@
 using System;
+using System.Reflection;
+using BepInEx.Bootstrap;
 using HarmonyLib;
 using UnityEngine;
 
@@ -10,6 +12,45 @@ namespace Sirroh.Qol
     /// </summary>
     internal static class QolGameAccess
     {
+        // ExtraSlots stores special slots below the regular rows of the SAME Inventory.
+        // This optional boundary is used by Sort and QuickStack only, never by Restock.
+        private static Func<int> _extraSlotsRegularHeight;
+        private static bool _extraSlotsLookupDone;
+
+        internal static bool TryGetQuickSortHeight(Inventory inventory, out int regularHeight)
+        {
+            regularHeight = inventory == null ? 0 : inventory.GetHeight();
+            if (inventory == null) return false;
+            if (!Chainloader.PluginInfos.TryGetValue("shudnal.ExtraSlots", out PluginInfo plugin))
+                return true;
+
+            if (!_extraSlotsLookupDone && plugin.Instance != null)
+            {
+                _extraSlotsLookupDone = true;
+                try
+                {
+                    Type api = plugin.Instance.GetType().Assembly.GetType("ExtraSlots.API");
+                    MethodInfo method = api == null ? null : api.GetMethod(
+                        "GetInventoryHeightPlayer", BindingFlags.Public | BindingFlags.Static);
+                    if (method != null && method.ReturnType == typeof(int) &&
+                        method.GetParameters().Length == 0)
+                        _extraSlotsRegularHeight = (Func<int>)Delegate.CreateDelegate(
+                            typeof(Func<int>), method);
+                }
+                catch (Exception) { /* Fail closed: do not expose protected slots. */ }
+            }
+
+            if (_extraSlotsRegularHeight == null) return false;
+            try
+            {
+                int boundary = _extraSlotsRegularHeight();
+                if (boundary < 1 || boundary > inventory.GetHeight()) return false;
+                regularHeight = boundary;
+                return true;
+            }
+            catch (Exception) { return false; }
+        }
+
         private static readonly AccessTools.FieldRef<InventoryGui,ItemDrop.ItemData> GuiDragged =
             AccessTools.FieldRefAccess<InventoryGui,ItemDrop.ItemData>("m_dragItem");
         private static readonly AccessTools.FieldRef<InventoryGui,Inventory> GuiSource =

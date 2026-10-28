@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 19, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.28"' in source["Plugin"]
+assert 'Version = "0.1.29"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -87,6 +87,18 @@ assert "QolStoreSort.Shutdown()" in source["Plugin"]
 assert "QolFavorites.IsFavoriteSlot" in source["QolStoreSort"]
 assert "StartStoreCurrent" in source["QolNearbyInventory"]
 assert "m_gridPos.y == 0" in source["QolStoreSort"]
+# ExtraSlots regression guards: protect QuickStack sources and Sort destinations only.
+assert 'Chainloader.PluginInfos.TryGetValue("shudnal.ExtraSlots"' in source["QolGameAccess"]
+assert '"GetInventoryHeightPlayer"' in source["QolGameAccess"]
+assert 'if (_extraSlotsRegularHeight == null) return false;' in source["QolGameAccess"]
+assert 'TryGetQuickSortHeight(inventory, out int regularHeight)' in source["QolStoreSort"]
+assert 'item.m_gridPos.y >= regularHeight' in source["QolStoreSort"]
+assert 'for (int y=1;y<regularHeight;y++)' in source["QolStoreSort"]
+assert 'if (quick && !QolGameAccess.TryGetQuickSortHeight(src, out regularHeight))' in source["QolNearbyInventory"]
+assert 'item.m_gridPos.y == 0 || item.m_gridPos.y >= regularHeight' in source["QolNearbyInventory"]
+assert 'own.m_gridPos.y == 0 || own.m_gridPos.y >= regularHeight' in source["QolNearbyInventory"]
+assert 'if (!quick && item.m_stack >= item.m_shared.m_maxStackSize) continue;' in source["QolNearbyInventory"]
+assert 'src.MoveItemToThis(dest,item,count,' in source["QolNearbyInventory"]
 assert "QolNearbyInventory.Tick();" in source["Plugin"]
 assert "FrameBudgetMs = 2.0" in source["QolNearbyInventory"]
 assert "private static long CellOf" in source["QolNearbyInventory"]
@@ -173,7 +185,7 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.28"
+assert manifest["version_number"] == "0.1.29"
 assert manifest["name"] == "SirrohQOLAddon"
 print("Source and Thunderstore manifest contracts: PASS")
 
