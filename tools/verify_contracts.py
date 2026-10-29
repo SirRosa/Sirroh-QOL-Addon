@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
 assert len(source) == 19, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.30"' in source["Plugin"]
+assert 'Version = "0.1.31"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -23,6 +23,17 @@ assert 'material.DisableKeyword("OUTLINE_ON")' in source["GlowingSigns"]
 assert 'ColorUtility.TryParseHtmlString' in source["GlowingSigns"]
 for key in ("SignEmission", "SignGlowStrength", "SignGlowRadius"):
     assert key in source["Plugin"] and key in source["GlowingSigns"]
+# Glowing Signs AA regression: offset ONLY the sign Canvas from Awake;
+# do not alter the TMP shader/glow settings or accumulate offsets on permissions.
+glow = source["GlowingSigns"]
+assert 'private const float CanvasDepthOffset = 0.03f;' in glow
+assert 'GetComponentInParent<Canvas>()' in glow
+assert 'position.z + CanvasDepthOffset' in glow
+assert glow.count('position.z + CanvasDepthOffset') == 1
+assert 'private static void OnSignAwake(Sign __instance)' in glow
+assert 'postfix: AccessTools.Method(typeof(GlowingSigns), nameof(OnSignAwake))' in glow
+assert 'postfix: AccessTools.Method(typeof(GlowingSigns), nameof(Apply))' in glow
+assert 'QualitySettings.antiAliasing' not in glow
 assert "GlowingSigns.RefreshMaterials()" in source["Plugin"]
 assert "SwimmingEquipment.Install(this)" in source["Plugin"]
 assert "SwimmingEquipment.Shutdown()" not in source["Plugin"]

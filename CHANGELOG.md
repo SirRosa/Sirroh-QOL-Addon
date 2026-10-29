@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.31 (test)
+- Glowing Signs: push the existing sign-text Canvas 0.03 units forward in its local Z once during Sign.Awake to reduce anti-aliasing flicker when moving toward/away from signs. Never accumulate the offset on permission callbacks.
+- Preserve the existing TMP HDR face color, emissive GLOW_ON, sign colors, cache and all Glow settings. No global anti-aliasing changes, per-frame updates or unrelated QOL changes.
+
 ## 0.1.30 (test)
 - Quickstack and Restock now allow player-accessible chests reconstructed from PlanBuild blueprints even if the original Piece creator flag was not preserved. Vanilla Container.CheckAccess, ward checks, InUse and network ownership remain enforced; moving ship containers remain excluded.
 - Report breakdown of rejected containers (invalid state, access, ward, in-use, ship and ownership timeout) once per operation in BepInEx logs. No extra continuous scanning.

@@ -24,6 +24,8 @@ namespace Sirroh.Qol
         private static readonly int GlowInner = Shader.PropertyToID("_GlowInner");
         private static readonly int GlowOuter = Shader.PropertyToID("_GlowOuter");
         private static readonly int GlowPower = Shader.PropertyToID("_GlowPower");
+        // Prevent AA-related depth flicker between the world-space sign canvas and board.
+        private const float CanvasDepthOffset = 0.03f;
         private static Shader _legacyShader;
         private static bool _warned;
         private static bool _reportedGlow;
@@ -32,9 +34,34 @@ namespace Sirroh.Qol
         {
             _host = host;
             host.Patch("GlowingSigns.Awake", AccessTools.Method(typeof(Sign), "Awake"),
-                postfix: AccessTools.Method(typeof(GlowingSigns), nameof(Apply)));
+                postfix: AccessTools.Method(typeof(GlowingSigns), nameof(OnSignAwake)));
             host.Patch("GlowingSigns.Permissions", AccessTools.Method(typeof(Sign), "OnCheckPermissionCompleted"),
                 postfix: AccessTools.Method(typeof(GlowingSigns), nameof(Apply)));
+        }
+
+        // The world-space sign text can nearly coincide with its board, causing
+        // temporal AA shimmer while the camera moves. Offset the existing canvas
+        // once when the sign awakens, not during permission/text refreshes.
+        // Keep the HDR font material, colors and glow completely unchanged.
+        private static void OnSignAwake(Sign __instance)
+        {
+            if (_host != null && _host.GlowSignsEnabled.Value &&
+                __instance != null && __instance.m_textWidget != null)
+            {
+                try
+                {
+                    Canvas canvas = __instance.m_textWidget.GetComponentInParent<Canvas>();
+                    if (canvas != null)
+                    {
+                        Transform transform = canvas.transform;
+                        Vector3 position = transform.localPosition;
+                        transform.localPosition = new Vector3(
+                            position.x, position.y, position.z + CanvasDepthOffset);
+                    }
+                }
+                catch (Exception e) { Warn("Cannot offset sign canvas: " + e); }
+            }
+            Apply(__instance);
         }
 
         private static void Apply(Sign __instance)
