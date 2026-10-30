@@ -203,7 +203,7 @@ assert "m_gridPos.y == 0" in source["QolTrashReclaim"]
 assert "SignMaterials" not in "".join(source.values())
 assert "SignMaterialMarkup" not in "".join(source.values())
 manifest = json.loads((root / "manifest.json").read_text())
-assert manifest["version_number"] == "0.1.31"
+assert manifest["version_number"] == "0.1.32"
 assert manifest["name"] == "Sirroh_QOL_Addon"
 print("Source and Thunderstore manifest contracts: PASS")
 
