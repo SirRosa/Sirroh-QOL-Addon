@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.32 (test)
+- Add optional AzuCraftyBoxes 1.8.28 compatibility for PlanBuild-imported placeable chests missing creator metadata. The shared Azu registration gate supplies both crafting and hammer building; no separate build patch or changes to Azu's recipe/consumption logic.
+- Keep vanilla chest/ward checks and Azu enable, pull-toggle, range, in-use, MineOnly and YAML rules intact.
+- Preserve the 0.1.31 main-branch Glowing Signs anti-aliasing fix and all other QOL modules unchanged.
+
 ## 0.1.31 (test)
 - Glowing Signs: push the existing sign-text Canvas 0.03 units forward in its local Z once during Sign.Awake to reduce anti-aliasing flicker when moving toward/away from signs. Never accumulate the offset on permission callbacks.
 - Preserve the existing TMP HDR face color, emissive GLOW_ON, sign colors, cache and all Glow settings. No global anti-aliasing changes, per-frame updates or unrelated QOL changes.

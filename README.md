@@ -1,6 +1,8 @@
+> **0.1.32 test:** Optional AzuCraftyBoxes 1.8.28 compatibility for imported PlanBuild `piece_chest*` containers. A single patch corrects the shared Azu container-registration gate used by both crafting recipes and hammer building; respects all existing access and pull restrictions. Requires in-game verification before merge to main.
+
 > Test build 0.1.30: PlanBuild-imported chests no longer require Piece.IsPlacedByPlayer(), but vanilla access/ward/in-use/network and ship restrictions remain. Rejection counts are logged by reason in BepInEx LogOutput.log. Thunderstore package identifier: `Sirroh_QOL_Addon`; BepInEx display name: `Sirroh QOL [Addon]`.
 
-# Sirroh QOL Addon — 0.1.29 (test release)
+# Sirroh QOL Addon — 0.1.32 (test release)
 
 One BepInEx DLL with configurable gameplay, inventory and UI features, including a skill-scaled Build Camera, for Valheim 1.0.
 

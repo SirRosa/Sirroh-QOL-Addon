@@ -1,6 +1,6 @@
 {
   "name": "Sirroh_QOL_Addon",
-  "version_number": "0.1.31",
+  "version_number": "0.1.32",
   "website_url": "https://github.com/SirRosa/Sirroh-QOL-Addon",
   "description": "Valheim QOL addon: safe 100m Quickstack/Restock (including PlanBuild blueprint chests), inventory utilities, build camera, equipment, repairs, stamina, food, signs and more.",
   "dependencies": [

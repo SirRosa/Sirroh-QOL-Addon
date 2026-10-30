@@ -3,9 +3,9 @@ import json
 
 root = Path(__file__).resolve().parents[1]
 source = {p.stem: p.read_text(encoding="utf-8") for p in (root / "src").glob("*.cs")}
-assert len(source) == 19, sorted(source)
+assert len(source) == 20, sorted(source)
 assert "sirro.valheim.pracafizyczna" in source["Plugin"]
-assert 'Version = "0.1.31"' in source["Plugin"]
+assert 'Version = "0.1.32"' in source["Plugin"]
 for feature in ("AutoRepair", "SafeStamina", "FoodFreeze", "GlowingSigns", "SlopeSafety"):
     assert feature + ".Install(this)" in source["Plugin"]
 assert "GetAllItems().Count" in source["AutoRepair"] and "TotalDurability(player) <= before" in source["AutoRepair"]
@@ -498,3 +498,23 @@ assert 'new GameObject(name, typeof(RectTransform));' not in reclaim
 assert 'TMP_FontAsset font' not in reclaim
 assert 'Log.LogDebug("TrashReclaim: no usable recipe' in reclaim
 assert 'Log.LogInfo(' in ui
+
+# 0.1.32: AzuCraftyBoxes PlanBuild compatibility uses Azu's shared container
+# registration gate, so it applies to both crafting and hammer building.
+azu_plan = source["QolAzuCraftyBoxesPlanBuildCompatibility"]
+assert '[BepInDependency("Azumatt.AzuCraftyBoxes", BepInDependency.DependencyFlags.SoftDependency)]' in source["Plugin"]
+assert "QolAzuCraftyBoxesPlanBuildCompatibility.Install(this);" in source["Plugin"]
+assert "QolAzuCraftyBoxesPlanBuildCompatibility.Shutdown();" in source["Plugin"]
+assert 'Chainloader.PluginInfos.TryGetValue(AzuGuid' in azu_plan
+assert '"ShouldSkipContainer"' in azu_plan and '"ShouldPrevent"' in azu_plan
+assert 'if ((bool)_shouldPrevent.Invoke(null, null)) return;' in azu_plan
+assert 'view.GetZDO().GetLong(ZDOVars.s_creator, 0L) != 0L' in azu_plan
+assert 'container.GetComponent<Piece>() == null' in azu_plan
+assert 'StartsWith("piece_chest", StringComparison.Ordinal)' in azu_plan
+assert '__result = false;' in azu_plan
+assert 'AddContainer(' not in azu_plan and 'ClaimOwnership(' not in azu_plan
+assert 'QolGameAccess.View(container)' in azu_plan
+# Retain the independent AA regression guards from 0.1.31/main.
+assert 'private const float CanvasDepthOffset = 0.03f;' in source["GlowingSigns"]
+assert 'nameof(OnSignAwake)' in source["GlowingSigns"]
+print("AzuCraftyBoxes PlanBuild crafting/building compatibility: PASS")
